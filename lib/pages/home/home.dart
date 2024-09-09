@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_furnitureapp/pages/login/login.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart'; // ใช้สำหรับแสดงโมเดล 3D
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -53,10 +54,10 @@ class _HomeState extends State<Home> {
                   stream: _firestore.collection('posts').snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
+                      return const Center(child: CircularProgressIndicator());
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return Center(child: Text('No posts found'));
+                      return const Center(child: Text('No posts found'));
                     }
 
                     final posts = snapshot.data!.docs;
@@ -66,6 +67,8 @@ class _HomeState extends State<Home> {
                         final post = posts[index];
                         final imageUrl = post['imageUrl'];
                         final text = post['text'];
+                        final modelUrl = post[
+                            'modelUrl']; // ดึง URL ของโมเดล 3D จาก Firestore
 
                         return FutureBuilder<String>(
                           future: _getImageUrl(imageUrl),
@@ -74,23 +77,36 @@ class _HomeState extends State<Home> {
                                 ConnectionState.waiting) {
                               return ListTile(
                                 title: Text(text),
-                                subtitle:
-                                    Center(child: CircularProgressIndicator()),
+                                subtitle: const Center(
+                                    child: CircularProgressIndicator()),
                               );
                             }
 
                             if (snapshot.hasError) {
                               return ListTile(
                                 title: Text(text),
-                                subtitle: Text('Error loading image'),
+                                subtitle: const Text('Error loading image'),
                               );
                             }
 
                             return ListTile(
                               title: Text(text),
                               subtitle: snapshot.hasData
-                                  ? Image.network(snapshot.data!)
-                                  : Text('Image not available'),
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                ModelViewerScreen(
+                                              modelUrl: modelUrl,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Image.network(snapshot.data!),
+                                    )
+                                  : const Text('Image not available'),
                             );
                           },
                         );
@@ -129,6 +145,30 @@ class _HomeState extends State<Home> {
         ));
       },
       child: const Text("Sign Out"),
+    );
+  }
+}
+
+class ModelViewerScreen extends StatelessWidget {
+  final String modelUrl;
+
+  const ModelViewerScreen({required this.modelUrl, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('3D Model Viewer'),
+      ),
+      body: Center(
+        child: ModelViewer(
+          src: modelUrl, // ใส่ URL ของโมเดล 3D ที่ได้รับมา
+          ar: true,
+          autoRotate: true,
+          cameraControls: true,
+          backgroundColor: Colors.white,
+        ),
+      ),
     );
   }
 }

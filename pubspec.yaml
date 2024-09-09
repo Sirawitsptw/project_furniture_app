@@ -41,6 +41,7 @@ dependencies:
   cloud_firestore: ^5.2.1
   google_fonts: ^6.2.1
   fluttertoast: ^8.2.8
+  model_viewer_plus: ^1.8.0
 
 dev_dependencies:
   flutter_test:
