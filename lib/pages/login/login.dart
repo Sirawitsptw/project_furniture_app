@@ -24,17 +24,6 @@ class Login extends StatelessWidget {
           onTap: () {
             Navigator.pop(context);
           },
-          child: Container(
-            margin: const EdgeInsets.only(left: 10),
-            decoration: const BoxDecoration(
-                color: Color(0xffF7F7F9), shape: BoxShape.circle),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.black,
-              ),
-            ),
-          ),
         ),
       ),
       body: SafeArea(
@@ -45,7 +34,7 @@ class Login extends StatelessWidget {
             children: [
               Center(
                 child: Text(
-                  'Hello Again',
+                  'Hello',
                   style: GoogleFonts.raleway(
                       textStyle: const TextStyle(
                           color: Colors.black,
