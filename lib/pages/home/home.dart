@@ -63,43 +63,42 @@ class _HomeState extends State<Home> {
                     return ListView.builder(
                       itemCount: posts.length,
                       itemBuilder: (context, index) {
-                        final post = posts[index];
-                        final imageUrl = post['imageUrl'];
+                        final post = posts[index].data();
                         final text = post['text'];
 
-                        return FutureBuilder<String>(
-                          future: _getImageUrl(imageUrl),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return ListTile(
-                                title: Text(text),
-                                subtitle: const Center(
-                                    child: CircularProgressIndicator()),
-                              );
-                            }
+                        // ตรวจสอบว่ามีฟิลด์ imageUrl หรือไม่
+                        final hasImageUrl = post.containsKey('imageUrl');
+                        final imageUrl = hasImageUrl ? post['imageUrl'] : null;
 
-                            if (snapshot.hasError) {
-                              return ListTile(
-                                title: Text(text),
-                                subtitle: const Text('Error loading image'),
-                              );
-                            }
+                        return ListTile(
+                          title: Text(text),
+                          subtitle: hasImageUrl
+                              ? FutureBuilder<String>(
+                                  future: _getImageUrl(imageUrl!),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
 
-                            return ListTile(
-                              title: Text(text),
-                              subtitle: snapshot.hasData
-                                  ? Image.network(snapshot.data!)
-                                  : const Text('Image not available'),
-                            );
-                          },
+                                    if (snapshot.hasError) {
+                                      return const Text('Error loading image');
+                                    }
+
+                                    return snapshot.hasData
+                                        ? Image.network(snapshot.data!)
+                                        : const Text('Image not available');
+                                  },
+                                )
+                              : const Text('No image available'),
                         );
                       },
                     );
                   },
                 ),
               ),
-              _logout(context)
+              _logout(context),
             ],
           ),
         ),
