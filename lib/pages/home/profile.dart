@@ -15,7 +15,7 @@ class profilepage extends StatelessWidget {
                 const Text('Profile'),
                 const SizedBox(
                     height: 20), // เพิ่มระยะห่างระหว่างข้อความและปุ่ม
-                _logout(context), // เรียกฟังก์ชัน _logout ที่นี่
+                _logout(context), // เรียกใช้ฟังก์ชัน _logout
               ],
             )),
       );
