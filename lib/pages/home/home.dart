@@ -3,131 +3,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_furnitureapp/pages/home/cart.dart';
+import 'package:project_furnitureapp/pages/home/profile.dart';
 import 'package:project_furnitureapp/pages/login/login.dart';
 
-class Home extends StatefulWidget {
-  const Home({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  _HomeState createState() => _HomeState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _HomeState extends State<Home> {
+class _HomePageState extends State<HomePage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  int currentIndex = 0;
+  List widgetOptions = [
+    const Text('HomePage'),
+    const cartpage(),
+    const profilepage()
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Hello👋',
-                style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Text(
-                FirebaseAuth.instance.currentUser!.email!.toString(),
-                style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-              Expanded(
-                child: StreamBuilder(
-                  stream: _firestore.collection('posts').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('No posts found'));
-                    }
-
-                    final posts = snapshot.data!.docs;
-                    return ListView.builder(
-                      itemCount: posts.length,
-                      itemBuilder: (context, index) {
-                        final post = posts[index].data();
-                        final text = post['text'];
-
-                        // ตรวจสอบว่ามีฟิลด์ imageUrl หรือไม่
-                        final hasImageUrl = post.containsKey('imageUrl');
-                        final imageUrl = hasImageUrl ? post['imageUrl'] : null;
-
-                        return ListTile(
-                          title: Text(text),
-                          subtitle: hasImageUrl
-                              ? FutureBuilder<String>(
-                                  future: _getImageUrl(imageUrl!),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Center(
-                                          child: CircularProgressIndicator());
-                                    }
-
-                                    if (snapshot.hasError) {
-                                      return const Text('Error loading image');
-                                    }
-
-                                    return snapshot.hasData
-                                        ? Image.network(snapshot.data!)
-                                        : const Text('Image not available');
-                                  },
-                                )
-                              : const Text('No image available'),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-              _logout(context),
-            ],
-          ),
-        ),
+      body: Center(
+        child: widgetOptions[currentIndex],
       ),
-    );
-  }
-
-  Future<String> _getImageUrl(String imagePath) async {
-    final ref = _storage.ref().child(imagePath);
-    return await ref.getDownloadURL();
-  }
-
-  Widget _logout(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xff0D6EFD),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        minimumSize: const Size(double.infinity, 60),
-        elevation: 0,
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_basket), label: 'Cart'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+        currentIndex: currentIndex,
+        onTap: (index) => setState(() => currentIndex = index),
       ),
-      onPressed: () async {
-        await FirebaseAuth.instance.signOut();
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (context) => Login(),
-        ));
-      },
-      child: const Text("Sign Out"),
     );
   }
 }
