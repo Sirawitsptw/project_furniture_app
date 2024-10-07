@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/cart.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:project_furnitureapp/pages/home/profile.dart';
+import 'package:project_furnitureapp/pages/product/product_view.dart';
 //import 'package:project_furnitureapp/pages/login/login.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,6 +28,7 @@ class _HomePageState extends State<HomePage> {
   ];
 
   List<Widget> widgets = [];
+  List<productModel> productmodels = [];
 
   @override
   void initState() {
@@ -43,31 +45,48 @@ class _HomePageState extends State<HomePage> {
           .snapshots()
           .listen((event) {
         print('Snapshots = ${event.docs}');
+        int index = 0;
         for (var snapshot in event.docs) {
           Map<String, dynamic> map = snapshot.data();
           print('map = ${map}');
           productModel model = productModel.fromMap(map);
+          productmodels.add(model);
           print('name = ${model.name}');
           setState(() {
-            widgets.add(createWidget(model));
+            widgets.add(createWidget(model, index));
           });
+          index++;
         }
       });
     });
   }
 
-  Widget createWidget(productModel model) => Card(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 150,
-                width: 150,
-                child: Image.network(model.imageUrl),
-              ),
-              Text(model.name),
-            ],
+  Widget createWidget(productModel model, int index) => GestureDetector(
+        //GestureDetector เพื่อให้ Card สามารถคลิกได้
+        onTap: () {
+          print('You Clicked from index = $index');
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProductView(
+                  productmodel: productmodels[index],
+                ),
+              ));
+        },
+        child: Card(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  height: 150,
+                  width: 150,
+                  child: Image.network(model.imageUrl),
+                ),
+                Text(model.name + '                 ' + model.price,
+                    style: TextStyle(color: Colors.red)),
+              ],
+            ),
           ),
         ),
       );
