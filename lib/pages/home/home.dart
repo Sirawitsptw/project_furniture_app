@@ -18,8 +18,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   int currentIndex = 0;
   List widgetOptions = [
     const Text('HomePage'),
@@ -41,7 +39,6 @@ class _HomePageState extends State<HomePage> {
       print('Initialize Success');
       await FirebaseFirestore.instance
           .collection('product')
-          .orderBy('name')
           .snapshots()
           .listen((event) {
         print('Snapshots = ${event.docs}');
