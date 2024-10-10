@@ -28,7 +28,7 @@ class _ProductViewState extends State<ProductView> {
       ),
       body: Center(
         child: ModelViewer(
-          src: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+          src: model.model,
           ar: true,
           scale: '1 1 1',
         ),
