@@ -5,21 +5,25 @@ class productModel {
   final String name;
   final String imageUrl;
   final String price;
+  final String model;
   productModel({
     required this.name,
     required this.imageUrl,
     required this.price,
+    required this.model,
   });
 
   productModel copyWith({
     String? name,
     String? imageUrl,
     String? price,
+    String? model,
   }) {
     return productModel(
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       price: price ?? this.price,
+      model: model ?? this.model,
     );
   }
 
@@ -28,6 +32,7 @@ class productModel {
       'name': name,
       'imageUrl': imageUrl,
       'price': price,
+      'model': model,
     };
   }
 
@@ -36,6 +41,7 @@ class productModel {
       name: map['name'] as String,
       imageUrl: map['imageUrl'] as String,
       price: map['price'] as String,
+      model: map['model'] as String,
     );
   }
 
@@ -45,8 +51,9 @@ class productModel {
       productModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
-  String toString() =>
-      'productModel(name: $name, imageUrl: $imageUrl, price: $price)';
+  String toString() {
+    return 'productModel(name: $name, imageUrl: $imageUrl, price: $price, model: $model)';
+  }
 
   @override
   bool operator ==(covariant productModel other) {
@@ -54,9 +61,12 @@ class productModel {
 
     return other.name == name &&
         other.imageUrl == imageUrl &&
-        other.price == price;
+        other.price == price &&
+        other.model == model;
   }
 
   @override
-  int get hashCode => name.hashCode ^ imageUrl.hashCode ^ price.hashCode;
+  int get hashCode {
+    return name.hashCode ^ imageUrl.hashCode ^ price.hashCode ^ model.hashCode;
+  }
 }
