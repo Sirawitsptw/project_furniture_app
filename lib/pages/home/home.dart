@@ -100,8 +100,8 @@ class _HomePageState extends State<HomePage> {
             ? widgets.length == 0
                 ? CircularProgressIndicator()
                 : GridView.extent(
-                    crossAxisSpacing: 10, // ระยะห่างระหว่างคอลัมน์
-                    mainAxisSpacing: 10, // ระยะห่างระหว่างแถว
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
                     maxCrossAxisExtent: 200,
                     children: widgets,
                   )

@@ -12,9 +12,8 @@ class profilepage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Profile'),
-                const SizedBox(
-                    height: 20), // เพิ่มระยะห่างระหว่างข้อความและปุ่ม
+                Text('Profile'),
+                SizedBox(height: 20), // เพิ่มระยะห่างระหว่างข้อความและปุ่ม
                 _logout(context), // เรียกใช้ฟังก์ชัน _logout
               ],
             )),
