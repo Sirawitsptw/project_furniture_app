@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
@@ -17,6 +18,19 @@ class _ProductViewState extends State<ProductView> {
   void initState() {
     super.initState();
     model = widget.productmodel;
+  }
+
+  Future<void> addToCart() async {
+    CollectionReference cart = FirebaseFirestore.instance.collection('cart');
+    return await cart.add({
+      'nameCart': model.name,
+      'priceCart': model.price,
+      'timeCart': FieldValue.serverTimestamp(),
+    }).then((value) {
+      print("Product Added to Cart: ${value.id}");
+    }).catchError((error) {
+      print("Failed to add product to cart: $error");
+    });
   }
 
   @override
@@ -62,20 +76,23 @@ class _ProductViewState extends State<ProductView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: Icon(Icons.shopping_basket, size: 40),
-                  onPressed: () {
-                    // กดเพิ่มตะกร้า
-                  },
-                ),
-
-                // ปุ่มสั่งซื้อ
+                    icon: Icon(Icons.shopping_basket, size: 40),
+                    onPressed: () {
+                      addToCart();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('เพิ่มสินค้าลงในตะกร้าสำเร็จ'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }),
                 ElevatedButton(
                   onPressed: () {
                     // ฟังก์ชันเมื่อกดปุ่มซื้อ
                   },
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(
-                        Colors.purple), // กำหนดสีพื้นหลังเป็นม่วง
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Colors.purple),
                     foregroundColor:
                         MaterialStateProperty.all<Color>(Colors.white),
                   ),
