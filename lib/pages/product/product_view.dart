@@ -33,6 +33,19 @@ class _ProductViewState extends State<ProductView> {
     });
   }
 
+  Future<void> orderProduct() async {
+    CollectionReference order = FirebaseFirestore.instance.collection('order');
+    return await order.add({
+      'nameProductOrder': model.name,
+      'priceOrder': model.price,
+      'timeOrder': FieldValue.serverTimestamp(),
+    }).then((value) {
+      print("Order Success: ${value.id}");
+    }).catchError((error) {
+      print("Failed to order $error");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,7 +101,7 @@ class _ProductViewState extends State<ProductView> {
                     }),
                 ElevatedButton(
                   onPressed: () {
-                    // ฟังก์ชันเมื่อกดปุ่มซื้อ
+                    orderProduct();
                   },
                   style: ButtonStyle(
                     backgroundColor:

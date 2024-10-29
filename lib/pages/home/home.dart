@@ -26,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   ];
 
   List<Widget> widgets = [];
-  List<productModel> productmodels = [];
+  List<productModel> productmodelList = [];
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _HomePageState extends State<HomePage> {
           Map<String, dynamic> map = snapshot.data();
           print('map = ${map}');
           productModel model = productModel.fromMap(map);
-          productmodels.add(model);
+          productmodelList.add(model);
           print('name = ${model.name}');
           setState(() {
             widgets.add(createWidget(model, index));
@@ -66,7 +66,7 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(
                 builder: (context) => ProductView(
-                  productmodel: productmodels[index],
+                  productmodel: productmodelList[index],
                 ),
               ));
         },
@@ -90,11 +90,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return nav(context);
-  }
-
-  Widget nav(BuildContext context) {
     return Scaffold(
+      appBar:
+          (AppBar(title: Text('หน้าหลัก'), backgroundColor: Colors.deepPurple)),
       body: Center(
         child: currentIndex == 0
             ? widgets.length == 0
@@ -105,8 +103,7 @@ class _HomePageState extends State<HomePage> {
                     maxCrossAxisExtent: 200,
                     children: widgets,
                   )
-            : widgetOptions[
-                currentIndex], // แสดงหน้า Cart และ Profile ถ้าไม่ใช่หน้า Home
+            : widgetOptions[currentIndex],
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
