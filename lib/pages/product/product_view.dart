@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+import 'package:project_furnitureapp/pages/product/orderProduct.dart';
 
 class ProductView extends StatefulWidget {
   final productModel productmodel;
@@ -30,19 +31,6 @@ class _ProductViewState extends State<ProductView> {
       print("Product Added to Cart: ${value.id}");
     }).catchError((error) {
       print("Failed to add product to cart: $error");
-    });
-  }
-
-  Future<void> orderProduct() async {
-    CollectionReference order = FirebaseFirestore.instance.collection('order');
-    return await order.add({
-      'nameProductOrder': model.name,
-      'priceOrder': model.price,
-      'timeOrder': FieldValue.serverTimestamp(),
-    }).then((value) {
-      print("Order Success: ${value.id}");
-    }).catchError((error) {
-      print("Failed to order $error");
     });
   }
 
@@ -101,7 +89,12 @@ class _ProductViewState extends State<ProductView> {
                     }),
                 ElevatedButton(
                   onPressed: () {
-                    orderProduct();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OrderPage(product: model),
+                      ),
+                    );
                   },
                   style: ButtonStyle(
                     backgroundColor:
