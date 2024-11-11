@@ -43,7 +43,7 @@ class _ProductViewState extends State<ProductView> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // โมเดลสินค้า
+          // AR
           Container(
             height: 350,
             width: 350,
