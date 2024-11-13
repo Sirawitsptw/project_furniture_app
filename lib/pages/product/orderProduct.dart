@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class OrderPage extends StatefulWidget {
   final productModel product;
@@ -12,6 +14,7 @@ class OrderPage extends StatefulWidget {
 
 class OrderPageState extends State<OrderPage> {
   late productModel orderproduct;
+  String? promptPayUrl;
 
   @override
   void initState() {
@@ -22,6 +25,9 @@ class OrderPageState extends State<OrderPage> {
   var _ctrlAddress = TextEditingController();
   var _ctrlName = TextEditingController();
   var _ctrlPhone = TextEditingController();
+  String? _selectedSize;
+
+  bool isDeliverySelected() => _selectedSize == 'ส่ง';
 
   Future<void> OrderProduct() async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
@@ -31,6 +37,7 @@ class OrderPageState extends State<OrderPage> {
       'nameCustomer': _ctrlName.text,
       'nameOrderProduct': orderproduct.name,
       'priceOrder': orderproduct.price,
+      'deliveryOption': _selectedSize,
       'timeCart': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Order: ${value.id}");
@@ -39,23 +46,110 @@ class OrderPageState extends State<OrderPage> {
     });
   }
 
+  Future<void> makePayment() async {
+    var url = Uri.parse('https://sandbox-cdnv3.chillpay.co/Payment/');
+    var response = await http.post(
+      url,
+      body: {
+        'MerchantCode': 'M035920',
+        'OrderName': orderproduct.name,
+        'Amount': orderproduct.price.toString(),
+        'APIKey':
+            '7FxwZsydrhhlDzz6EfQTB9eL6om4TOxy7K3IHEQv0hXh76YNvrQbTYjUGpvymq3l',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      var responseData = json.decode(response.body);
+      String orderNumber = responseData['order_number'];
+      promptPayUrl = responseData['promptpay_url']; // เก็บ URL ของ QR Code
+      checkPaymentStatus(orderNumber); // เรียกใช้ฟังก์ชันเพื่อตรวจสอบสถานะ
+    } else {
+      print('Error: ${response.statusCode}, ${response.body}');
+    }
+  }
+
+  Future<void> checkPaymentStatus(String orderNumber) async {
+    var url = Uri.parse(
+        'https://sandbox-cdnv3.chillpay.co/PaymentStatus/$orderNumber');
+    var response = await http.get(
+      url,
+      headers: {
+        'Authorization':
+            'Bearer 7FxwZsydrhhlDzz6EfQTB9eL6om4TOxy7K3IHEQv0hXh76YNvrQbTYjUGpvymq3l',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      var paymentStatus = json.decode(response.body);
+      if (paymentStatus['status'] == 'success') {
+        print('Payment was successful');
+        _showPaymentSuccessDialog(); // แสดงข้อความว่าชำระเงินเสร็จสิ้น
+      } else {
+        print('Payment failed or pending');
+      }
+    } else {
+      print('Failed to retrieve payment status: ${response.statusCode}');
+    }
+  }
+
+  void _showPaymentSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('ชำระเงินเสร็จสิ้น'),
+          content: Text('การชำระเงินของคุณสำเร็จแล้ว'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('ปิด'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-            title: Text('สั่งซื้อสินค้า'), backgroundColor: Colors.deepPurple),
+          title: Text('สั่งซื้อสินค้า'),
+          backgroundColor: Colors.deepPurple,
+        ),
         body: Center(
           child: SizedBox(
             width: 350,
-            child: Column(children: [
-              SizedBox(height: 30),
-              textFieldAddress(),
-              SizedBox(height: 30),
-              textFieldPhone(),
-              SizedBox(height: 30),
-              textFieldName(),
-              SizedBox(height: 30),
-              OrderButton(),
-            ]),
+            child: Column(
+              children: [
+                SizedBox(height: 30),
+                productInfo(),
+                SizedBox(height: 30),
+                RadioButton(
+                  selectedValue: _selectedSize,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSize = value;
+                    });
+                  },
+                ),
+                SizedBox(height: 30),
+                textFieldAddress(),
+                SizedBox(height: 30),
+                textFieldPhone(),
+                SizedBox(height: 30),
+                textFieldName(),
+                SizedBox(height: 30),
+                OrderButton(),
+                if (promptPayUrl != null) ...[
+                  SizedBox(height: 30),
+                  Text('QR Code สำหรับการชำระเงิน:'),
+                  Image.network(promptPayUrl!), // แสดง QR Code
+                ],
+              ],
+            ),
           ),
         ),
       );
@@ -72,6 +166,7 @@ class OrderPageState extends State<OrderPage> {
             border: outlineBorder(), hintText: 'ที่อยู่สำหรับจัดส่ง'),
         keyboardType: TextInputType.text,
         style: textStyle(),
+        enabled: isDeliverySelected(), // เปิด/ปิด textfield
       );
 
   Widget textFieldName() => TextField(
@@ -103,4 +198,72 @@ class OrderPageState extends State<OrderPage> {
           child: Text('สั่งซื้อ', style: TextStyle(fontSize: 18)),
         ),
       );
+
+  Widget productInfo() => Container(
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              child: orderproduct.imageUrl != null
+                  ? Image.network(
+                      orderproduct.imageUrl!,
+                      fit: BoxFit.cover,
+                    )
+                  : Icon(Icons.image, size: 40, color: Colors.grey),
+            ),
+            SizedBox(width: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  orderproduct.name,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'ราคา: ${orderproduct.price} บาท',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class RadioButton extends StatelessWidget {
+  final String? selectedValue;
+  final ValueChanged<String?> onChanged;
+
+  RadioButton({
+    required this.selectedValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RadioListTile<String>(
+          title: Text('รับสินค้าด้วยตนเอง(เวลา 9.00 - 17.00)',
+              style: TextStyle(fontSize: 14)),
+          value: 'รับ',
+          groupValue: selectedValue,
+          onChanged: onChanged,
+        ),
+        RadioListTile<String>(
+          title: Text('ส่งถึงบ้าน', style: TextStyle(fontSize: 14)),
+          value: 'ส่ง',
+          groupValue: selectedValue,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
 }

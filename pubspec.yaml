@@ -42,6 +42,8 @@ dependencies:
   google_fonts: ^6.2.1
   fluttertoast: ^8.2.8
   model_viewer_plus: ^1.8.0
+  http: ^1.2.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
