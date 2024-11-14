@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+//import 'package:http/http.dart' as http;
+//import 'dart:convert';
 
 class OrderPage extends StatefulWidget {
   final productModel product;
@@ -27,7 +27,7 @@ class OrderPageState extends State<OrderPage> {
   var _ctrlPhone = TextEditingController();
   String? _selectedSize;
 
-  bool isDeliverySelected() => _selectedSize == 'ส่ง';
+  bool isDeliverySelected() => _selectedSize == 'ส่งที่บ้าน';
 
   Future<void> OrderProduct() async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
@@ -44,73 +44,6 @@ class OrderPageState extends State<OrderPage> {
     }).catchError((error) {
       print("Failed to Order: $error");
     });
-  }
-
-  Future<void> makePayment() async {
-    var url = Uri.parse('https://sandbox-cdnv3.chillpay.co/Payment/');
-    var response = await http.post(
-      url,
-      body: {
-        'MerchantCode': 'M035920',
-        'OrderName': orderproduct.name,
-        'Amount': orderproduct.price.toString(),
-        'APIKey':
-            '7FxwZsydrhhlDzz6EfQTB9eL6om4TOxy7K3IHEQv0hXh76YNvrQbTYjUGpvymq3l',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      var responseData = json.decode(response.body);
-      String orderNumber = responseData['order_number'];
-      promptPayUrl = responseData['promptpay_url']; // เก็บ URL ของ QR Code
-      checkPaymentStatus(orderNumber); // เรียกใช้ฟังก์ชันเพื่อตรวจสอบสถานะ
-    } else {
-      print('Error: ${response.statusCode}, ${response.body}');
-    }
-  }
-
-  Future<void> checkPaymentStatus(String orderNumber) async {
-    var url = Uri.parse(
-        'https://sandbox-cdnv3.chillpay.co/PaymentStatus/$orderNumber');
-    var response = await http.get(
-      url,
-      headers: {
-        'Authorization':
-            'Bearer 7FxwZsydrhhlDzz6EfQTB9eL6om4TOxy7K3IHEQv0hXh76YNvrQbTYjUGpvymq3l',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      var paymentStatus = json.decode(response.body);
-      if (paymentStatus['status'] == 'success') {
-        print('Payment was successful');
-        _showPaymentSuccessDialog(); // แสดงข้อความว่าชำระเงินเสร็จสิ้น
-      } else {
-        print('Payment failed or pending');
-      }
-    } else {
-      print('Failed to retrieve payment status: ${response.statusCode}');
-    }
-  }
-
-  void _showPaymentSuccessDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('ชำระเงินเสร็จสิ้น'),
-          content: Text('การชำระเงินของคุณสำเร็จแล้ว'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('ปิด'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -253,13 +186,13 @@ class RadioButton extends StatelessWidget {
         RadioListTile<String>(
           title: Text('รับสินค้าด้วยตนเอง(เวลา 9.00 - 17.00)',
               style: TextStyle(fontSize: 14)),
-          value: 'รับ',
+          value: 'รับสินค้าด้วยตนเอง',
           groupValue: selectedValue,
           onChanged: onChanged,
         ),
         RadioListTile<String>(
           title: Text('ส่งถึงบ้าน', style: TextStyle(fontSize: 14)),
-          value: 'ส่ง',
+          value: 'ส่งถึงบ้าน',
           groupValue: selectedValue,
           onChanged: onChanged,
         ),

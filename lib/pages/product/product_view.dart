@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
@@ -23,9 +24,13 @@ class _ProductViewState extends State<ProductView> {
 
   Future<void> addToCart() async {
     CollectionReference cart = FirebaseFirestore.instance.collection('cart');
+    User? user = FirebaseAuth.instance.currentUser;
+    String userEmail = user?.email ?? 'No email found';
     return await cart.add({
+      'userEmail': userEmail,
       'nameCart': model.name,
       'priceCart': model.price,
+      'imgCart': model.imageUrl,
       'timeCart': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Added to Cart: ${value.id}");
