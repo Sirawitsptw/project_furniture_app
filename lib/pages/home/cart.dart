@@ -15,15 +15,12 @@ class _CartPageState extends State<cartpage> {
     User? user = FirebaseAuth.instance.currentUser;
     String userEmail = user?.email ?? '';
     return Scaffold(
-      appBar: AppBar(
-        title: Text('ตะกร้าสินค้า'),
-      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('cart')
             .where('userEmail',
                 isEqualTo:
-                    userEmail) // กรองข้อมูลที่มี userEmail ตรงกับผู้ใช้ที่ล็อกอิน
+                    userEmail) // เช็คข้อมูลที่มี userEmail ตรงกับผู้ใช้ที่ล็อกอิน
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -54,7 +51,6 @@ class _CartPageState extends State<cartpage> {
                   trailing: IconButton(
                     icon: Icon(Icons.remove_shopping_cart),
                     onPressed: () {
-                      // สามารถเพิ่มฟังก์ชันลบสินค้าออกจากตะกร้าได้ที่นี่
                       FirebaseFirestore.instance
                           .collection('cart')
                           .doc(item.id)

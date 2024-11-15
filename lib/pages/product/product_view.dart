@@ -147,6 +147,6 @@ class _ProductViewState extends State<ProductView> {
 
   Widget description() => Container(
         alignment: Alignment.centerLeft,
-        child: Text('คำอธิบายสินค้า'),
+        child: Text(model.desc),
       );
 }

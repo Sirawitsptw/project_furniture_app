@@ -1,14 +1,11 @@
-//import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-//import 'package:google_fonts/google_fonts.dart';
 import 'package:project_furnitureapp/pages/home/cart.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:project_furnitureapp/pages/home/profile.dart';
 import 'package:project_furnitureapp/pages/product/product_view.dart';
-//import 'package:project_furnitureapp/pages/login/login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,10 +16,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
-  List widgetOptions = [
+
+  final List<String> appBarTitles = ['หน้าหลัก', 'ตะกร้าสินค้า', 'โปรไฟล์'];
+
+  List<Widget> widgetOptions = [
     const Text('HomePage'),
     const cartpage(),
-    const profilepage()
+    const ProfilePage(),
   ];
 
   List<Widget> widgets = [];
@@ -37,38 +37,37 @@ class _HomePageState extends State<HomePage> {
   Future<Null> readData() async {
     await Firebase.initializeApp().then((value) async {
       print('Initialize Success');
-      await FirebaseFirestore.instance
-          .collection('product')
-          .snapshots()
-          .listen((event) {
-        print('Snapshots = ${event.docs}');
-        int index = 0;
-        for (var snapshot in event.docs) {
-          Map<String, dynamic> map = snapshot.data();
-          print('map = ${map}');
-          productModel model = productModel.fromMap(map);
-          productmodelList.add(model);
-          print('name = ${model.name}');
-          setState(() {
-            widgets.add(createWidget(model, index));
-          });
-          index++;
-        }
-      });
+      await FirebaseFirestore.instance.collection('product').snapshots().listen(
+        (event) {
+          print('Snapshots = ${event.docs}');
+          int index = 0;
+          for (var snapshot in event.docs) {
+            Map<String, dynamic> map = snapshot.data();
+            print('map = $map');
+            productModel model = productModel.fromMap(map);
+            productmodelList.add(model);
+            print('name = ${model.name}');
+            setState(() {
+              widgets.add(createWidget(model, index));
+            });
+            index++;
+          }
+        },
+      );
     });
   }
 
   Widget createWidget(productModel model, int index) => GestureDetector(
-        //GestureDetector เพื่อให้ Card สามารถคลิกได้
         onTap: () {
           print('You Clicked from index = $index');
           Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductView(
-                  productmodel: productmodelList[index],
-                ),
-              ));
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductView(
+                productmodel: productmodelList[index],
+              ),
+            ),
+          );
         },
         child: Card(
           child: Center(
@@ -80,8 +79,7 @@ class _HomePageState extends State<HomePage> {
                   width: 150,
                   child: Image.network(model.imageUrl),
                 ),
-                Text(model.name + '                 ' + model.price,
-                    style: TextStyle(color: Colors.red)),
+                Text('${model.name}                 ${model.price}'),
               ],
             ),
           ),
@@ -91,12 +89,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          (AppBar(title: Text('หน้าหลัก'), backgroundColor: Colors.deepPurple)),
+      appBar: AppBar(
+        title: Text(appBarTitles[currentIndex]),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: Center(
         child: currentIndex == 0
-            ? widgets.length == 0
-                ? CircularProgressIndicator()
+            ? widgets.isEmpty
+                ? const CircularProgressIndicator()
                 : GridView.extent(
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,

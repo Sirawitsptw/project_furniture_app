@@ -6,11 +6,13 @@ class productModel {
   final String imageUrl;
   final String price;
   final String model;
+  final String desc;
   productModel({
     required this.name,
     required this.imageUrl,
     required this.price,
     required this.model,
+    required this.desc,
   });
 
   productModel copyWith({
@@ -18,12 +20,14 @@ class productModel {
     String? imageUrl,
     String? price,
     String? model,
+    String? desc,
   }) {
     return productModel(
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       price: price ?? this.price,
       model: model ?? this.model,
+      desc: desc ?? this.model,
     );
   }
 
@@ -33,6 +37,7 @@ class productModel {
       'imageUrl': imageUrl,
       'price': price,
       'model': model,
+      'desc': desc,
     };
   }
 
@@ -42,6 +47,7 @@ class productModel {
       imageUrl: map['imageUrl'] as String,
       price: map['price'] as String,
       model: map['model'] as String,
+      desc: map['desc'] as String,
     );
   }
 
@@ -52,7 +58,7 @@ class productModel {
 
   @override
   String toString() {
-    return 'productModel(name: $name, imageUrl: $imageUrl, price: $price, model: $model)';
+    return 'productModel(name: $name, imageUrl: $imageUrl, price: $price, model: $model, desc: $desc)';
   }
 
   @override
@@ -62,11 +68,16 @@ class productModel {
     return other.name == name &&
         other.imageUrl == imageUrl &&
         other.price == price &&
-        other.model == model;
+        other.model == model &&
+        other.desc == desc;
   }
 
   @override
   int get hashCode {
-    return name.hashCode ^ imageUrl.hashCode ^ price.hashCode ^ model.hashCode;
+    return name.hashCode ^
+        imageUrl.hashCode ^
+        price.hashCode ^
+        model.hashCode ^
+        desc.hashCode;
   }
 }

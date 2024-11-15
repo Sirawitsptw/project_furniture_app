@@ -27,7 +27,7 @@ class OrderPageState extends State<OrderPage> {
   var _ctrlPhone = TextEditingController();
   String? _selectedSize;
 
-  bool isDeliverySelected() => _selectedSize == 'ส่งที่บ้าน';
+  bool isDeliverySelected() => _selectedSize == 'ส่งถึงบ้าน';
 
   Future<void> OrderProduct() async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
@@ -38,7 +38,7 @@ class OrderPageState extends State<OrderPage> {
       'nameOrderProduct': orderproduct.name,
       'priceOrder': orderproduct.price,
       'deliveryOption': _selectedSize,
-      'timeCart': FieldValue.serverTimestamp(),
+      'timeOrder': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Order: ${value.id}");
     }).catchError((error) {
