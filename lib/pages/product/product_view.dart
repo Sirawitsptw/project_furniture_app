@@ -1,9 +1,10 @@
+import 'package:arcore_flutter_plugin/arcore_flutter_plugin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
-import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:project_furnitureapp/pages/product/orderProduct.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 class ProductView extends StatefulWidget {
   final productModel productmodel;
@@ -15,6 +16,8 @@ class ProductView extends StatefulWidget {
 
 class _ProductViewState extends State<ProductView> {
   late productModel model;
+  late ArCoreController arCoreController;
+  late ArCoreNode arCoreNode;
 
   @override
   void initState() {
@@ -48,14 +51,11 @@ class _ProductViewState extends State<ProductView> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // AR
-          Container(
-            height: 350,
-            width: 350,
-            child: ModelViewer(
-              src: model.model,
-              ar: true,
-              scale: '1 1 1',
+          // AR with Measurement
+          Expanded(
+            child: ArCoreView(
+              onArCoreViewCreated: _onArCoreViewCreated,
+              enableTapRecognizer: true,
             ),
           ),
 
@@ -101,12 +101,7 @@ class _ProductViewState extends State<ProductView> {
                       ),
                     );
                   },
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.purple),
-                    foregroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                  ),
+                  style: ButtonStyle(),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 80, vertical: 10),
@@ -119,6 +114,35 @@ class _ProductViewState extends State<ProductView> {
         ],
       ),
     );
+  }
+
+  // ARCore View Created
+  _onArCoreViewCreated(ArCoreController controller) {
+    arCoreController = controller;
+    arCoreController.onPlaneTap = _onPlaneTap;
+    _addARModel();
+  }
+
+  // Function to add AR model to AR view
+  _addARModel() async {
+    final node = ArCoreReferenceNode(
+      name: 'model',
+      object3DFileName: model.model,
+      position: Vector3(0, 0, 0),
+      rotation: Vector4(0, 0, 0, 1),
+    );
+    arCoreController.addArCoreNode(node);
+    arCoreNode = node;
+  }
+
+  // Function to handle plane tap for size measurement
+  _onPlaneTap(List<ArCoreHitTestResult> hitTestResults) {
+    if (hitTestResults.isNotEmpty) {
+      // Handle measuring logic here
+      ArCoreHitTestResult result = hitTestResults.first;
+      print('Plane tapped at position: ${result.pose.translation}');
+      // You can add more logic here to show measurements
+    }
   }
 
   Widget nameprice() => Row(
