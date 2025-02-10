@@ -46,6 +46,9 @@ dependencies:
   qr_flutter: ^4.1.0
   arcore_flutter_plugin: ^0.1.0
   vector_math: ^2.1.4
+  google_api_availability: ^5.0.0
+  google_mobile_ads: ^5.3.1
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

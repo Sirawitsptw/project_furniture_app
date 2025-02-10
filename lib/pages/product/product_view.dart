@@ -2,6 +2,8 @@ import 'package:arcore_flutter_plugin/arcore_flutter_plugin.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:google_api_availability/google_api_availability.dart';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:project_furnitureapp/pages/product/orderProduct.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -23,8 +25,38 @@ class _ProductViewState extends State<ProductView> {
   void initState() {
     super.initState();
     model = widget.productmodel;
+    _checkARPermissions();
   }
 
+  // ตรวจสอบ AR และขอสิทธิ์กล้อง
+  Future<void> _checkARPermissions() async {
+    // ตรวจสอบ Google Play Services สำหรับ AR
+    GoogleApiAvailability availability = GoogleApiAvailability.instance;
+    GooglePlayServicesAvailability playServicesStatus =
+        await availability.checkGooglePlayServicesAvailability();
+
+    if (playServicesStatus != GooglePlayServicesAvailability.success) {
+      // หาก Google Play Services สำหรับ AR ไม่พร้อมใช้งาน
+      print("Google Play Services for AR is not available.");
+      return;
+    }
+
+    // ขอสิทธิ์การเข้าถึงกล้อง
+    PermissionStatus status = await Permission.camera.request();
+
+    if (status.isGranted) {
+      print("Camera permission granted.");
+      // หากได้รับอนุญาต สามารถเริ่มใช้งาน AR ได้
+      _addARModel();
+    } else {
+      print("Camera permission denied.");
+      if (status.isPermanentlyDenied) {
+        openAppSettings();
+      }
+    }
+  }
+
+  // ฟังก์ชันเพิ่มสินค้าในตะกร้า
   Future<void> addToCart() async {
     CollectionReference cart = FirebaseFirestore.instance.collection('cart');
     User? user = FirebaseAuth.instance.currentUser;
@@ -116,18 +148,19 @@ class _ProductViewState extends State<ProductView> {
     );
   }
 
-  // ARCore View Created
+  // เมื่อ ArCoreView ถูกสร้าง
   _onArCoreViewCreated(ArCoreController controller) {
     arCoreController = controller;
     arCoreController.onPlaneTap = _onPlaneTap;
     _addARModel();
   }
 
-  // Function to add AR model to AR view
+  // ฟังก์ชันเพิ่ม AR Model ลงใน AR View
   _addARModel() async {
     final node = ArCoreReferenceNode(
       name: 'model',
-      object3DFileName: model.model,
+      object3DFileName:
+          model.model, // ตรวจสอบว่า `model.model` คือไฟล์ 3D ที่ต้องการแสดง
       position: Vector3(0, 0, 0),
       rotation: Vector4(0, 0, 0, 1),
     );
@@ -135,13 +168,13 @@ class _ProductViewState extends State<ProductView> {
     arCoreNode = node;
   }
 
-  // Function to handle plane tap for size measurement
+  // ฟังก์ชันสำหรับการคลิกที่ plane เพื่อวัดขนาด
   _onPlaneTap(List<ArCoreHitTestResult> hitTestResults) {
     if (hitTestResults.isNotEmpty) {
-      // Handle measuring logic here
+      // เพิ่มตรรกะการวัดขนาดที่นี่
       ArCoreHitTestResult result = hitTestResults.first;
       print('Plane tapped at position: ${result.pose.translation}');
-      // You can add more logic here to show measurements
+      // เพิ่มตรรกะที่ต้องการแสดงการวัด
     }
   }
 
