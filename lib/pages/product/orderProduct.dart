@@ -25,9 +25,9 @@ class OrderPageState extends State<OrderPage> {
   var _ctrlAddress = TextEditingController();
   var _ctrlName = TextEditingController();
   var _ctrlPhone = TextEditingController();
-  String? _selectedSize;
+  String? selectedSize;
 
-  bool isDeliverySelected() => _selectedSize == 'ส่งถึงบ้าน';
+  bool isDeliverySelected() => selectedSize == 'ส่งถึงบ้าน';
 
   Future<void> OrderProduct() async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
@@ -37,7 +37,8 @@ class OrderPageState extends State<OrderPage> {
       'nameCustomer': _ctrlName.text,
       'nameOrderProduct': orderproduct.name,
       'priceOrder': orderproduct.price,
-      'deliveryOption': _selectedSize,
+      'deliveryOption': selectedSize,
+      'imageUrl': orderproduct.imageUrl,
       'timeOrder': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Order: ${value.id}");
@@ -61,10 +62,10 @@ class OrderPageState extends State<OrderPage> {
                 productInfo(),
                 SizedBox(height: 30),
                 RadioButton(
-                  selectedValue: _selectedSize,
+                  selectedValue: selectedSize,
                   onChanged: (value) {
                     setState(() {
-                      _selectedSize = value;
+                      selectedSize = value;
                     });
                   },
                 ),

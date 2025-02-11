@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project_furnitureapp/pages/login/login.dart';
+import 'package:project_furnitureapp/pages/product/orderlist.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -24,7 +25,10 @@ class ProfilePage extends StatelessWidget {
                       ),
                       minimumSize: Size(double.infinity, 50),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => OrderList()));
+                    },
                     child: const Text(
                       'รายการคำสั่งซื้อ',
                       style: TextStyle(color: Colors.white),

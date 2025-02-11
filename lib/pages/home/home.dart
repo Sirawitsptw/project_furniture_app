@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
 
   List<Widget> widgetOptions = [
     const Text('HomePage'),
-    const cartpage(),
+    const CartPage(),
     const ProfilePage(),
   ];
 
