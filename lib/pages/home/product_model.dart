@@ -4,7 +4,7 @@ import 'dart:convert';
 class productModel {
   final String name;
   final String imageUrl;
-  final String price;
+  final int price;
   final String model;
   final String desc;
   productModel({
@@ -18,7 +18,7 @@ class productModel {
   productModel copyWith({
     String? name,
     String? imageUrl,
-    String? price,
+    int? price,
     String? model,
     String? desc,
   }) {
@@ -45,7 +45,7 @@ class productModel {
     return productModel(
       name: map['name'] as String,
       imageUrl: map['imageUrl'] as String,
-      price: map['price'] as String,
+      price: map['price'] as int,
       model: map['model'] as String,
       desc: map['desc'] as String,
     );

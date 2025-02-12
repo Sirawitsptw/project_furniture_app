@@ -38,17 +38,11 @@ class _HomePageState extends State<HomePage> {
                     .collection('product')
                     .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Text('No products available');
-                  }
-                  final List<productModel> productmodelList = snapshot
-                      .data!.docs
-                      .map((doc) => productModel
-                          .fromMap(doc.data() as Map<String, dynamic>))
-                      .toList();
+                  final List<productModel> productmodelList =
+                      (snapshot.data?.docs ?? [])
+                          .map((doc) => productModel
+                              .fromMap(doc.data() as Map<String, dynamic>))
+                          .toList();
 
                   return GridView.extent(
                     crossAxisSpacing: 10,

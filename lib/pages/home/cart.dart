@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:project_furnitureapp/pages/home/product_model.dart';
 import 'package:project_furnitureapp/pages/product/orderProduct.dart';
+import 'product_model.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -14,6 +14,17 @@ class CartPage extends StatefulWidget {
 class CartPageState extends State<CartPage> {
   String? selectedProductId;
   Map<String, dynamic>? selectedProductData;
+  Map<String, int> productQuantities = {};
+
+  void updateQuantity(String productId, int change) {
+    setState(() {
+      productQuantities[productId] =
+          (productQuantities[productId] ?? 1) + change;
+      if (productQuantities[productId]! < 1) {
+        productQuantities[productId] = 1;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +55,9 @@ class CartPageState extends State<CartPage> {
                   itemBuilder: (context, index) {
                     var item = cartItems[index];
                     var itemData = item.data() as Map<String, dynamic>;
+                    String productId = item.id;
+                    productQuantities.putIfAbsent(productId, () => 1);
+
                     return Card(
                       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       child: ListTile(
@@ -51,7 +65,7 @@ class CartPageState extends State<CartPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Radio<String>(
-                              value: item.id,
+                              value: productId,
                               groupValue: selectedProductId,
                               onChanged: (value) {
                                 setState(() {
@@ -65,13 +79,33 @@ class CartPageState extends State<CartPage> {
                           ],
                         ),
                         title: Text(itemData['nameCart']),
-                        subtitle: Text('${itemData['priceCart']} บาท'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.remove),
+                                  onPressed: () =>
+                                      updateQuantity(productId, -1),
+                                ),
+                                Text('${productQuantities[productId]}'),
+                                IconButton(
+                                  icon: Icon(Icons.add),
+                                  onPressed: () => updateQuantity(productId, 1),
+                                ),
+                              ],
+                            ),
+                            Text(
+                                'ราคา: ${(int.parse(itemData['priceCart'].toString()) * productQuantities[productId]!)} บาท'),
+                          ],
+                        ),
                         trailing: IconButton(
                           icon: Icon(Icons.remove_shopping_cart),
                           onPressed: () {
                             FirebaseFirestore.instance
                                 .collection('cart')
-                                .doc(item.id)
+                                .doc(productId)
                                 .delete();
                           },
                         ),
@@ -85,9 +119,11 @@ class CartPageState extends State<CartPage> {
                 child: ElevatedButton(
                   onPressed: selectedProductData != null
                       ? () {
-                          productModel product = productModel(
+                          productModel productCart = productModel(
                             name: selectedProductData!['nameCart'],
-                            price: selectedProductData!['priceCart'],
+                            price: int.parse(selectedProductData!['priceCart']
+                                    .toString()) *
+                                productQuantities[selectedProductId]!,
                             imageUrl: selectedProductData!['imgCart'],
                             model: selectedProductData!['modelCart'],
                             desc: selectedProductData!['descCart'],
@@ -96,7 +132,8 @@ class CartPageState extends State<CartPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => OrderPage(product: product),
+                              builder: (context) =>
+                                  OrderPage(product: productCart),
                             ),
                           );
                         }
