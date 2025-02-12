@@ -31,6 +31,8 @@ class _ProductViewState extends State<ProductView> {
       'nameCart': model.name,
       'priceCart': model.price,
       'imgCart': model.imageUrl,
+      'descCart': model.desc,
+      'modelCart': model.model,
       'timeCart': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Added to Cart: ${value.id}");
