@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
-//import 'package:http/http.dart' as http;
-//import 'dart:convert';
 
 class OrderPage extends StatefulWidget {
   final productModel product;
@@ -14,23 +14,31 @@ class OrderPage extends StatefulWidget {
 
 class OrderPageState extends State<OrderPage> {
   late productModel orderproduct;
-  String? promptPayUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    orderproduct = widget.product;
-  }
+  String? selectedSize;
+  String? selectedPayment;
 
   var _ctrlAddress = TextEditingController();
   var _ctrlName = TextEditingController();
   var _ctrlPhone = TextEditingController();
-  String? selectedSize;
+  var _ctrlCardName = TextEditingController();
+  var _ctrlCardNumber = TextEditingController();
+  var _ctrlExpMonth = TextEditingController();
+  var _ctrlExpYear = TextEditingController();
+  var _ctrlCVC = TextEditingController();
 
   bool isDeliverySelected() => selectedSize == 'ส่งถึงบ้าน';
 
-  Future<void> OrderProduct() async {
+  Future<void> OrderProduct({String? paymentStatus}) async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
+
+    if (paymentStatus == null) {
+      if (selectedPayment == "ชำระเงินปลายทาง") {
+        paymentStatus = "รอชำระเงินปลายทาง";
+      } else {
+        paymentStatus = "ชำระเงินแล้ว";
+      }
+    }
+
     return await order.add({
       'address': _ctrlAddress.text,
       'phone': _ctrlPhone.text,
@@ -38,13 +46,219 @@ class OrderPageState extends State<OrderPage> {
       'nameOrderProduct': orderproduct.name,
       'priceOrder': orderproduct.price,
       'deliveryOption': selectedSize,
+      'paymentMethod': selectedPayment,
+      'paymentStatus': paymentStatus,
       'imageUrl': orderproduct.imageUrl,
       'timeOrder': FieldValue.serverTimestamp(),
     }).then((value) {
       print("Product Order: ${value.id}");
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("สั่งซื้อสินค้าเสร็จสิ้น"),
+              content: Text(selectedPayment == "ชำระเงินปลายทาง"
+                  ? "สั่งซื้อสินค้าเสร็จสิ้น (รอชำระเงินปลายทาง)"
+                  : "สั่งซื้อสินค้าเสร็จสิ้น (ชำระเงินแล้ว)"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("ตกลง"))
+              ],
+            );
+          });
     }).catchError((error) {
       print("Failed to Order: $error");
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("เกิดข้อผิดพลาด"),
+              content: Text("ไม่สามารถสั่งซื้อสินค้าได้"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("ตกลง"))
+              ],
+            );
+          });
     });
+  }
+
+  Future<void> _processOnlinePayment() async {
+    String? token = await _createToken();
+    if (token == null) {
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("เกิดข้อผิดพลาด"),
+              content: Text("ไม่สามารถสร้าง Token สำหรับบัตรเครดิตได้"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("ตกลง"))
+              ],
+            );
+          });
+      return;
+    }
+
+    bool paymentSuccess = await _chargeCard(token);
+    if (paymentSuccess) {
+      await OrderProduct(paymentStatus: "ชำระเงินแล้ว");
+    } else {
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text("การชำระเงินล้มเหลว"),
+              content: Text("กรุณาลองใหม่อีกครั้ง"),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("ตกลง"))
+              ],
+            );
+          });
+    }
+  }
+
+  Future<String?> _createToken() async {
+    final url = Uri.parse('https://vault.omise.co/tokens');
+    final headers = {
+      'Authorization':
+          'Basic ${base64Encode(utf8.encode('pkey_test_62u1x0xhtbfav9nr87w:'))}',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({
+      'card': {
+        'name': _ctrlCardName.text,
+        'number': _ctrlCardNumber.text,
+        'expiration_month': int.tryParse(_ctrlExpMonth.text) ?? 0,
+        'security_code': _ctrlCVC.text,
+        'expiration_year': int.tryParse(_ctrlExpYear.text) ?? 0,
+      }
+    });
+
+    final response = await http.post(url, headers: headers, body: body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['id'];
+    } else {
+      print("Token Error: ${response.body}");
+      return null;
+    }
+  }
+
+  Future<bool> _chargeCard(String token) async {
+    final url = Uri.parse('https://api.omise.co/charges');
+    final headers = {
+      'Authorization':
+          'Basic ${base64Encode(utf8.encode('skey_test_62u1x0xwk6kmvednpqy:'))}',
+      'Content-Type': 'application/json',
+    };
+
+    final body = jsonEncode({
+      'amount': orderproduct.price * 100,
+      'currency': 'THB',
+      'card': token,
+    });
+
+    final response = await http.post(url, headers: headers, body: body);
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print("Charge Error: ${response.body}");
+      return false;
+    }
+  }
+
+  Future<void> _showPaymentDialog() async {
+    await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("ชำระเงินออนไลน์"),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _ctrlCardName,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(), hintText: 'ชื่อบนบัตร'),
+                  ),
+                  SizedBox(height: 10),
+                  TextField(
+                    controller: _ctrlCardNumber,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'เลขบัตรเครดิต'),
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _ctrlExpMonth,
+                          decoration: InputDecoration(
+                              border: OutlineInputBorder(), hintText: 'เดือน'),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _ctrlExpYear,
+                          decoration: InputDecoration(
+                              border: OutlineInputBorder(), hintText: 'ปี'),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 10),
+                  TextField(
+                    controller: _ctrlCVC,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(), hintText: 'CVC'),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("ยกเลิก")),
+              TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _processOnlinePayment();
+                  },
+                  child: Text("ชำระเงิน"))
+            ],
+          );
+        });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    orderproduct = widget.product;
   }
 
   @override
@@ -76,12 +290,16 @@ class OrderPageState extends State<OrderPage> {
                 SizedBox(height: 30),
                 textFieldName(),
                 SizedBox(height: 30),
+                PaymentRadioButton(
+                  selectedValue: selectedPayment,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedPayment = value;
+                    });
+                  },
+                ),
+                SizedBox(height: 30),
                 OrderButton(),
-                if (promptPayUrl != null) ...[
-                  SizedBox(height: 30),
-                  Text('QR Code สำหรับการชำระเงิน:'),
-                  Image.network(promptPayUrl!), // แสดง QR Code
-                ],
               ],
             ),
           ),
@@ -100,7 +318,7 @@ class OrderPageState extends State<OrderPage> {
             border: outlineBorder(), hintText: 'ที่อยู่สำหรับจัดส่ง'),
         keyboardType: TextInputType.text,
         style: textStyle(),
-        enabled: isDeliverySelected(), // เปิด/ปิด textfield
+        enabled: isDeliverySelected(),
       );
 
   Widget textFieldName() => TextField(
@@ -121,7 +339,11 @@ class OrderPageState extends State<OrderPage> {
 
   Widget OrderButton() => ElevatedButton(
         onPressed: () {
-          OrderProduct();
+          if (selectedPayment == "ชำระเงินออนไลน์") {
+            _showPaymentDialog();
+          } else {
+            OrderProduct();
+          }
         },
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.all<Color>(Colors.purple),
@@ -194,6 +416,37 @@ class RadioButton extends StatelessWidget {
         RadioListTile<String>(
           title: Text('ส่งถึงบ้าน', style: TextStyle(fontSize: 14)),
           value: 'ส่งถึงบ้าน',
+          groupValue: selectedValue,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class PaymentRadioButton extends StatelessWidget {
+  final String? selectedValue;
+  final ValueChanged<String?> onChanged;
+
+  PaymentRadioButton({
+    required this.selectedValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RadioListTile<String>(
+          title: Text('ชำระเงินปลายทาง', style: TextStyle(fontSize: 14)),
+          value: 'ชำระเงินปลายทาง',
+          groupValue: selectedValue,
+          onChanged: onChanged,
+        ),
+        RadioListTile<String>(
+          title: Text('ชำระเงินออนไลน์', style: TextStyle(fontSize: 14)),
+          value: 'ชำระเงินออนไลน์',
           groupValue: selectedValue,
           onChanged: onChanged,
         ),
