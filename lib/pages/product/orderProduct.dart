@@ -46,6 +46,7 @@ class OrderPageState extends State<OrderPage> {
       'nameOrderProduct': orderproduct.name,
       'priceOrder': orderproduct.price,
       'deliveryOption': selectedSize,
+      'deliveryStatus': "รอดำเนินการ",
       'paymentMethod': selectedPayment,
       'paymentStatus': paymentStatus,
       'imageUrl': orderproduct.imageUrl,
