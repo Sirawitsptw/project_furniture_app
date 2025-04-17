@@ -7,12 +7,14 @@ class productModel {
   final int price;
   final String model;
   final String desc;
+  // final int amount;
   productModel({
     required this.name,
     required this.imageUrl,
     required this.price,
     required this.model,
     required this.desc,
+    // required this.amount,
   });
 
   productModel copyWith({
@@ -21,6 +23,7 @@ class productModel {
     int? price,
     String? model,
     String? desc,
+    // int? amount,
   }) {
     return productModel(
       name: name ?? this.name,
@@ -28,6 +31,7 @@ class productModel {
       price: price ?? this.price,
       model: model ?? this.model,
       desc: desc ?? this.model,
+      // amount: amount ?? this.amount,
     );
   }
 
@@ -38,6 +42,7 @@ class productModel {
       'price': price,
       'model': model,
       'desc': desc,
+      // 'amount': amount,
     };
   }
 
@@ -48,6 +53,7 @@ class productModel {
       price: map['price'] as int,
       model: map['model'] as String,
       desc: map['desc'] as String,
+      // amount: map['amount'] as int,
     );
   }
 
@@ -70,6 +76,7 @@ class productModel {
         other.price == price &&
         other.model == model &&
         other.desc == desc;
+    // other.amount == amount;
   }
 
   @override
@@ -79,5 +86,6 @@ class productModel {
         price.hashCode ^
         model.hashCode ^
         desc.hashCode;
+    // amount.hashCode;
   }
 }

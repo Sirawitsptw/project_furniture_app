@@ -340,6 +340,12 @@ class OrderPageState extends State<OrderPage> {
 
   Widget OrderButton() => ElevatedButton(
         onPressed: () {
+          // if (selectedSize == null) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     const SnackBar(content: Text("กรุณากรอกข้อมูลให้ครบ")),
+          //   );
+          //   return;
+          // }
           if (selectedPayment == "ชำระเงินออนไลน์") {
             _showPaymentDialog();
           } else {

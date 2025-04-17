@@ -25,9 +25,9 @@ class _ProductViewState extends State<ProductView> {
   Future<void> addToCart() async {
     CollectionReference cart = FirebaseFirestore.instance.collection('cart');
     User? user = FirebaseAuth.instance.currentUser;
-    String userEmail = user?.email ?? 'No email found';
+    String userPhone = user?.phoneNumber ?? '';
     return await cart.add({
-      'userEmail': userEmail,
+      'userPhone': userPhone,
       'nameCart': model.name,
       'priceCart': model.price,
       'imgCart': model.imageUrl,

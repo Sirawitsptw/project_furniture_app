@@ -29,12 +29,12 @@ class CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
-    String userEmail = user?.email ?? '';
+    String userPhone = user?.phoneNumber ?? '';
     return Scaffold(
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('cart')
-            .where('userEmail', isEqualTo: userEmail)
+            .where('userPhone', isEqualTo: userPhone)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -127,6 +127,7 @@ class CartPageState extends State<CartPage> {
                             imageUrl: selectedProductData!['imgCart'],
                             model: selectedProductData!['modelCart'],
                             desc: selectedProductData!['descCart'],
+                            // amount: productQuantities[selectedProductId]!,
                           );
 
                           Navigator.push(

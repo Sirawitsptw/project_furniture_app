@@ -4,11 +4,30 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class Signup extends StatelessWidget {
+class Signup extends StatefulWidget {
   Signup({super.key});
+  @override
+  State<Signup> createState() => SignupState();
+}
 
+class SignupState extends State<Signup> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
+  bool _codeSent = false;
+  String? _verificationId;
+
+  String formatPhoneNumber(String rawPhone) {
+    if (rawPhone.startsWith('0')) {
+      return rawPhone.replaceFirst('0', '+66');
+    } else if (!rawPhone.startsWith('+')) {
+      return '+66$rawPhone';
+    }
+    return rawPhone;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +62,18 @@ class Signup extends StatelessWidget {
                 const SizedBox(
                   height: 20,
                 ),
+                _phoneNumber(),
+                if (_codeSent) ...{
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  _otpInput()
+                },
                 _password(),
+                const SizedBox(
+                  height: 20,
+                ),
+                _passwordConfirm(),
                 const SizedBox(
                   height: 50,
                 ),
@@ -88,6 +118,39 @@ class Signup extends StatelessWidget {
     );
   }
 
+  Widget _phoneNumber() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Mobile Phone',
+          style: GoogleFonts.raleway(
+              textStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16)),
+        ),
+        const SizedBox(
+          height: 16,
+        ),
+        TextField(
+            controller: _phoneController,
+            decoration: InputDecoration(
+                filled: true,
+                hintStyle: const TextStyle(
+                    color: Color(0xff6A6A6A),
+                    fontWeight: FontWeight.normal,
+                    fontSize: 14),
+                fillColor: const Color(0xffF7F7F9),
+                border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(14))),
+            keyboardType: TextInputType.phone)
+      ],
+    );
+  }
+
   Widget _password() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -118,6 +181,67 @@ class Signup extends StatelessWidget {
     );
   }
 
+  Widget _passwordConfirm() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Confirm Password',
+          style: GoogleFonts.raleway(
+              textStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16)),
+        ),
+        const SizedBox(
+          height: 16,
+        ),
+        TextField(
+          controller: _confirmPasswordController,
+          obscureText: true,
+          decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xffF7F7F9),
+              border: OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(14))),
+        )
+      ],
+    );
+  }
+
+  Widget _otpInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter OTP',
+          style: GoogleFonts.raleway(
+            textStyle: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _otpController,
+          decoration: InputDecoration(
+            hintText: '6-digit code',
+            fillColor: const Color(0xffF7F7F9),
+            filled: true,
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          keyboardType: TextInputType.number,
+        ),
+      ],
+    );
+  }
+
   Widget _signup(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -129,12 +253,52 @@ class Signup extends StatelessWidget {
         elevation: 0,
       ),
       onPressed: () async {
-        await AuthService().signup(
-            email: _emailController.text,
-            password: _passwordController.text,
-            context: context);
+        if (_passwordController.text != _confirmPasswordController.text) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("รหัสผ่านไม่ตรงกัน")),
+          );
+          return;
+        }
+
+        if (_emailController.text.isEmpty ||
+            _passwordController.text.isEmpty ||
+            _confirmPasswordController.text.isEmpty ||
+            _phoneController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("กรุณากรอกข้อมูลให้ครบ")),
+          );
+          return;
+        }
+
+        if (_codeSent) {
+          if (_otpController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("กรุณากรอก OTP")),
+            );
+            return;
+          }
+
+          await AuthService().verifyOTP(
+            verificationId: _verificationId!,
+            smsCode: _otpController.text,
+            context: context,
+          );
+        } else {
+          phoneNumber:
+          formatPhoneNumber(_phoneController.text.trim());
+          await AuthService().sendOTP(
+            phoneNumber: formatPhoneNumber(_phoneController.text.trim()),
+            context: context,
+            onCodeSent: (verificationId) {
+              setState(() {
+                _verificationId = verificationId;
+                _codeSent = true;
+              });
+            },
+          );
+        }
       },
-      child: const Text("Sign Up"),
+      child: Text(_codeSent ? 'ยืนยัน OTP' : 'ส่ง OTP'),
     );
   }
 
