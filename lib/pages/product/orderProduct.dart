@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:project_furnitureapp/pages/home/product_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class OrderPage extends StatefulWidget {
   final productModel product;
@@ -30,6 +31,8 @@ class OrderPageState extends State<OrderPage> {
 
   Future<void> OrderProduct({String? paymentStatus}) async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
+    User? user = FirebaseAuth.instance.currentUser;
+    String userPhone = user?.phoneNumber ?? '';
 
     if (paymentStatus == null) {
       if (selectedPayment == "ชำระเงินปลายทาง") {
@@ -40,6 +43,7 @@ class OrderPageState extends State<OrderPage> {
     }
 
     return await order.add({
+      'userPhone': userPhone,
       'address': _ctrlAddress.text,
       'phone': _ctrlPhone.text,
       'nameCustomer': _ctrlName.text,

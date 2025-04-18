@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class OrderList extends StatefulWidget {
   @override
@@ -12,13 +13,15 @@ class OrderListState extends State<OrderList> {
 
   @override
   Widget build(BuildContext context) {
+    User? user = FirebaseAuth.instance.currentUser;
+    String userPhone = user?.phoneNumber ?? '';
     return Scaffold(
       appBar: AppBar(
         title: Text('รายการคำสั่งซื้อ'),
         backgroundColor: Colors.deepPurple,
       ),
       body: StreamBuilder(
-        stream: order.snapshots(),
+        stream: order.where('userPhone', isEqualTo: userPhone).snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(child: Text('ไม่มีคำสั่งซื้อ'));
