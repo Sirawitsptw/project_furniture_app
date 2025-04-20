@@ -69,7 +69,7 @@ class _ProductViewState extends State<ProductView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 nameprice(),
-                SizedBox(height: 30),
+                SizedBox(height: 20),
                 description(),
               ],
             ),
@@ -149,6 +149,13 @@ class _ProductViewState extends State<ProductView> {
 
   Widget description() => Container(
         alignment: Alignment.centerLeft,
-        child: Text(model.desc),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("จำนวนสินค้า ${model.amount} ชิ้น"),
+            SizedBox(height: 10),
+            Text(model.desc),
+          ],
+        ),
       );
 }

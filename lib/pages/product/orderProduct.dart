@@ -29,8 +29,10 @@ class OrderPageState extends State<OrderPage> {
 
   bool isDeliverySelected() => selectedSize == 'ส่งถึงบ้าน';
 
-  Future<void> OrderProduct({String? paymentStatus}) async {
+  Future OrderProduct({String? paymentStatus}) async {
     CollectionReference order = FirebaseFirestore.instance.collection('order');
+    CollectionReference product =
+        FirebaseFirestore.instance.collection('product');
     User? user = FirebaseAuth.instance.currentUser;
     String userPhone = user?.phoneNumber ?? '';
 
@@ -55,8 +57,23 @@ class OrderPageState extends State<OrderPage> {
       'paymentStatus': paymentStatus,
       'imageUrl': orderproduct.imageUrl,
       'timeOrder': FieldValue.serverTimestamp(),
-    }).then((value) {
+    }).then((value) async {
       print("Product Order: ${value.id}");
+
+      try {
+        QuerySnapshot querySnapshot =
+            await product.where('name', isEqualTo: orderproduct.name).get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot doc = querySnapshot.docs.first;
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          int currentAmount = data['amount'] ?? 0;
+          if (currentAmount > 0) {
+            await doc.reference.update({'amount': currentAmount - 1});
+          }
+        }
+      } catch (e) {}
+
       showDialog(
           context: context,
           builder: (context) {
@@ -68,6 +85,7 @@ class OrderPageState extends State<OrderPage> {
               actions: [
                 TextButton(
                     onPressed: () {
+                      Navigator.of(context).pop();
                       Navigator.of(context).pop();
                       Navigator.of(context).pop();
                     },
@@ -272,40 +290,43 @@ class OrderPageState extends State<OrderPage> {
           title: Text('สั่งซื้อสินค้า'),
           backgroundColor: Colors.deepPurple,
         ),
-        body: Center(
-          child: SizedBox(
-            width: 350,
-            child: Column(
-              children: [
-                SizedBox(height: 30),
-                productInfo(),
-                SizedBox(height: 30),
-                RadioButton(
-                  selectedValue: selectedSize,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedSize = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 30),
-                textFieldAddress(),
-                SizedBox(height: 30),
-                textFieldPhone(),
-                SizedBox(height: 30),
-                textFieldName(),
-                SizedBox(height: 30),
-                PaymentRadioButton(
-                  selectedValue: selectedPayment,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedPayment = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 30),
-                OrderButton(),
-              ],
+        body: SingleChildScrollView(
+          child: Center(
+            child: SizedBox(
+              width: 350,
+              child: Column(
+                children: [
+                  SizedBox(height: 30),
+                  productInfo(),
+                  SizedBox(height: 30),
+                  RadioButton(
+                    selectedValue: selectedSize,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSize = value;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 30),
+                  textFieldAddress(),
+                  SizedBox(height: 30),
+                  textFieldPhone(),
+                  SizedBox(height: 30),
+                  textFieldName(),
+                  SizedBox(height: 30),
+                  PaymentRadioButton(
+                    selectedValue: selectedPayment,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedPayment = value;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 30),
+                  OrderButton(),
+                  SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
         ),

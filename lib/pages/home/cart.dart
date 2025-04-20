@@ -127,7 +127,7 @@ class CartPageState extends State<CartPage> {
                             imageUrl: selectedProductData!['imgCart'],
                             model: selectedProductData!['modelCart'],
                             desc: selectedProductData!['descCart'],
-                            // amount: productQuantities[selectedProductId]!,
+                            amount: productQuantities[selectedProductId]!,
                           );
 
                           Navigator.push(

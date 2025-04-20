@@ -71,32 +71,63 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget createWidget(productModel model, int index) => GestureDetector(
-        onTap: () {
-          print('You Clicked from index = $index');
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductView(
-                productmodel: model,
-              ),
-            ),
-          );
-        },
-        child: Card(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  Widget createWidget(productModel model, int index) {
+    bool isOutOfStock = model.amount == 0;
+    Widget productCard = Card(
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
               children: [
                 Container(
                   height: 150,
                   width: 150,
                   child: Image.network(model.imageUrl),
                 ),
-                Text('${model.name}                 ${model.price}'),
+                if (isOutOfStock)
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        'หมด',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
+            Text('${model.name}                 ${model.price}'),
+          ],
         ),
-      );
+      ),
+    );
+
+    return isOutOfStock
+        ? productCard
+        : GestureDetector(
+            onTap: () {
+              print('You Clicked from index = $index');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductView(
+                    productmodel: model,
+                  ),
+                ),
+              );
+            },
+            child: productCard,
+          );
+  }
 }

@@ -7,14 +7,14 @@ class productModel {
   final int price;
   final String model;
   final String desc;
-  // final int amount;
+  final int amount;
   productModel({
     required this.name,
     required this.imageUrl,
     required this.price,
     required this.model,
     required this.desc,
-    // required this.amount,
+    required this.amount,
   });
 
   productModel copyWith({
@@ -23,7 +23,7 @@ class productModel {
     int? price,
     String? model,
     String? desc,
-    // int? amount,
+    int? amount,
   }) {
     return productModel(
       name: name ?? this.name,
@@ -31,7 +31,7 @@ class productModel {
       price: price ?? this.price,
       model: model ?? this.model,
       desc: desc ?? this.model,
-      // amount: amount ?? this.amount,
+      amount: amount ?? this.amount,
     );
   }
 
@@ -42,7 +42,7 @@ class productModel {
       'price': price,
       'model': model,
       'desc': desc,
-      // 'amount': amount,
+      'amount': amount,
     };
   }
 
@@ -53,7 +53,7 @@ class productModel {
       price: map['price'] as int,
       model: map['model'] as String,
       desc: map['desc'] as String,
-      // amount: map['amount'] as int,
+      amount: map['amount'] as int,
     );
   }
 
@@ -64,7 +64,7 @@ class productModel {
 
   @override
   String toString() {
-    return 'productModel(name: $name, imageUrl: $imageUrl, price: $price, model: $model, desc: $desc)';
+    return 'productModel(name: $name, imageUrl: $imageUrl, price: $price, model: $model, desc: $desc, amount: $amount)';
   }
 
   @override
@@ -75,8 +75,8 @@ class productModel {
         other.imageUrl == imageUrl &&
         other.price == price &&
         other.model == model &&
-        other.desc == desc;
-    // other.amount == amount;
+        other.desc == desc &&
+        other.amount == amount;
   }
 
   @override
@@ -85,7 +85,7 @@ class productModel {
         imageUrl.hashCode ^
         price.hashCode ^
         model.hashCode ^
-        desc.hashCode;
-    // amount.hashCode;
+        desc.hashCode ^
+        amount.hashCode;
   }
 }
