@@ -69,21 +69,18 @@ class _ProductViewState extends State<ProductView> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Model Viewer
           Container(
             height: 350,
-            width: 350, // ใช้ขนาดเดิม
+            width: 350,
             child: ModelViewer(
               src: model.model,
-              ar: false,
+              ar: true,
               autoRotate: true,
               cameraControls: true,
               // scale: '1 1 1',
             ),
           ),
-
           SizedBox(height: 20),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Column(
@@ -94,7 +91,6 @@ class _ProductViewState extends State<ProductView> {
               ],
             ),
           ),
-
           SizedBox(height: 30),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -156,13 +152,11 @@ class _ProductViewState extends State<ProductView> {
               ],
             ),
           ),
-          // **** สิ้นสุดปุ่มเดิม ****
         ],
       ),
     );
   }
 
-  // --- Widgets เดิม ---
   Widget nameprice() => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
