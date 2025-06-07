@@ -128,6 +128,10 @@ class CartPageState extends State<CartPage> {
                             model: selectedProductData!['modelCart'],
                             desc: selectedProductData!['descCart'],
                             amount: productQuantities[selectedProductId]!,
+                            width: selectedProductData!['widthCart'],
+                            height: selectedProductData!['heightCart'],
+                            depth: selectedProductData!['depthCart'],
+                            longest: selectedProductData!['longestCart'],
                           );
 
                           Navigator.push(

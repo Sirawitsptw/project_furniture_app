@@ -73,11 +73,10 @@ class _ProductViewState extends State<ProductView> {
             height: 350,
             width: 350,
             child: ModelViewer(
-              src: model.model,
+              src: model.model, // URL/path ของโมเดล 3D
               ar: true,
               autoRotate: true,
               cameraControls: true,
-              // scale: '1 1 1',
             ),
           ),
           SizedBox(height: 20),
@@ -95,22 +94,32 @@ class _ProductViewState extends State<ProductView> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: ElevatedButton.icon(
-              icon: Icon(Icons.camera_alt),
+              icon: Icon(Icons.view_in_ar),
               label: Text('AR'),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 45),
               ),
               onPressed: () {
                 if (Platform.isAndroid) {
+                  print(
+                      "Navigating to AR Screen with model URL: ${model.model} and dimension: ${model.longest}");
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const ArMeasureScreen()),
+                        builder: (context) => ArMeasureScreen(
+                              // ===============================================
+                              // **** จุดที่แก้ไข ****
+                              modelUrlToPlace: model.model,
+                              // เพิ่มการส่งขนาดของโมเดลไปด้วย
+                              modelDimension: model.longest,
+                              // ===============================================
+                            )),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('ERROR'),
+                      content:
+                          Text('AR features are only available on Android.'),
                       duration: Duration(seconds: 3),
                     ),
                   );
@@ -118,7 +127,7 @@ class _ProductViewState extends State<ProductView> {
               },
             ),
           ),
-          Expanded(child: Container()),
+          Expanded(child: Container()), // ทำให้ปุ่มด้านล่างสุดอยู่ติดขอบ
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),

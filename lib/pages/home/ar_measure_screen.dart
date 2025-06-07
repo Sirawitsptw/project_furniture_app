@@ -1,6 +1,12 @@
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io' show Platform;
+
+// TODO: แก้ 'your_project_name' ให้เป็นชื่อโปรเจกต์ของคุณเพื่อให้ path ถูกต้อง
+import 'placement_screen.dart';
 
 class MeasurementData {
   final String label;
@@ -21,24 +27,36 @@ class MeasurementData {
       Map<dynamic, dynamic> map, double devicePixelRatio) {
     double rawX = map['midPointScreenX'] as double? ?? -1.0;
     double rawY = map['midPointScreenY'] as double? ?? -1.0;
-    bool isValid = rawX >= 0 && rawY >= 0;
+    bool isValidPayload = rawX >= 0 && rawY >= 0;
+    double logicalX = -1.0;
+    double logicalY = -1.0;
 
+    if (isValidPayload) {
+      if (devicePixelRatio <= 0) {
+        logicalX = rawX;
+        logicalY = rawY;
+      } else {
+        logicalX = rawX / devicePixelRatio;
+        logicalY = rawY / devicePixelRatio;
+      }
+    }
     return MeasurementData(
       label: map['label'] as String? ?? '',
       distance: map['distance'] as double? ?? 0.0,
-      midPointScreenX: isValid ? rawX / devicePixelRatio : -1.0,
-      midPointScreenY: isValid ? rawY / devicePixelRatio : -1.0,
-      initiallyValid: isValid,
+      midPointScreenX: logicalX,
+      midPointScreenY: logicalY,
+      initiallyValid: isValidPayload,
     );
   }
-
-  bool get isVisibleOnScreen {
-    return initiallyValid && midPointScreenX >= 0 && midPointScreenY >= 0;
-  }
+  bool get isVisibleOnScreen =>
+      initiallyValid && midPointScreenX >= 0 && midPointScreenY >= 0;
 }
 
 class ArMeasureScreen extends StatefulWidget {
-  const ArMeasureScreen({super.key});
+  final String? modelUrlToPlace;
+  final double? modelDimension;
+
+  const ArMeasureScreen({super.key, this.modelUrlToPlace, this.modelDimension});
 
   @override
   State<ArMeasureScreen> createState() => _ArMeasureScreenState();
@@ -48,31 +66,19 @@ class _ArMeasureScreenState extends State<ArMeasureScreen> {
   static const String _channelName = 'ar_measurement_channel';
   static const MethodChannel _channel = MethodChannel(_channelName);
 
+  final GlobalKey _arViewKey = GlobalKey();
   List<MeasurementData> _measurements = [];
-  String _statusText = 'Tap on detected planes to place points.';
-  double _devicePixelRatio = 1.0;
-  bool _isArFrozen = false; // สถานะการ Freeze AR View
+  String _statusText = 'Initializing AR...';
+  bool _isActionFinished = false;
 
   @override
   void initState() {
     super.initState();
     _channel.setMethodCallHandler(_handleMethodCall);
+    _statusText = 'Move phone to find planes for measurement.';
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final newDevicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    if (_devicePixelRatio != newDevicePixelRatio) {
-      // ใช้ setState ที่นี่ได้ เพราะ didChangeDependencies สามารถเรียก setState ได้
-      setState(() {
-        _devicePixelRatio = newDevicePixelRatio;
-      });
-      print("Device Pixel Ratio updated: $_devicePixelRatio");
-    }
-  }
-
-  Future<dynamic> _handleMethodCall(MethodCall call) async {
+  Future<dynamic> _handleMethodCall(MethodCall call) {
     switch (call.method) {
       case 'measurementSetResult':
         final List<dynamic>? results = call.arguments as List<dynamic>?;
@@ -80,212 +86,195 @@ class _ArMeasureScreenState extends State<ArMeasureScreen> {
           setState(() {
             _measurements = results
                 .map((item) => MeasurementData.fromMap(
-                    item as Map<dynamic, dynamic>, _devicePixelRatio))
+                    item as Map<dynamic, dynamic>,
+                    MediaQuery.of(context).devicePixelRatio))
                 .toList();
-            _measurements.forEach((m) {
-              print(
-                  "Processed Measurement: Label=${m.label}, Dist=${m.distance.toStringAsFixed(2)}, X=${m.midPointScreenX.toStringAsFixed(2)}, Y=${m.midPointScreenY.toStringAsFixed(2)}, InitiallyValid=${m.initiallyValid}, IsVisible=${m.isVisibleOnScreen}");
-            });
-            if (!_isArFrozen) {
-              // อัปเดต status text เฉพาะตอนที่ AR ยังไม่ถูก freeze
-              if (_measurements.where((m) => m.initiallyValid).isEmpty) {
-                _statusText = 'Place 2 or 4 points to measure.';
-              } else {
-                _statusText =
-                    '${_measurements.where((m) => m.initiallyValid).length} measurement(s) active.';
-              }
+            if (!_isActionFinished) {
+              _statusText = _measurements.isEmpty
+                  ? 'Tap on detected planes to measure.'
+                  : '${_measurements.length} measurement(s) active.';
             }
           });
         }
-        print("Received measurement set (raw): $results");
         break;
       case 'pointsCleared':
         if (mounted) {
           setState(() {
             _measurements.clear();
-            _isArFrozen =
-                false; // เมื่อล้างจุด ควรจะยกเลิกการ freeze ด้วย (ถ้าต้องการ)
+            _isActionFinished = false;
             _statusText = 'Points cleared. Tap to place point 1.';
           });
         }
-        print("Points cleared by native.");
         break;
       default:
-        print('Unknown method call received: ${call.method}');
+        break;
     }
+    return Future.value();
   }
 
-  Future<void> _clearPoints() async {
+  Future<void> _clearArState() async {
     try {
-      await _channel.invokeMethod(
-          'clearPoints'); // Native จะมีการตั้ง arViewIsFrozen = false ด้วย
-      if (mounted) {
-        // อัปเดต UI ฝั่ง Flutter ทันทีด้วย
-        setState(() {
-          _measurements.clear();
-          _isArFrozen = false;
-          _statusText = 'Points cleared. Tap to place point 1.';
-        });
-      }
-      print("Invoked clearPoints");
+      await _channel.invokeMethod('clearPoints');
     } on PlatformException catch (e) {
-      print("Failed to invoke clearPoints: '${e.message}'.");
       if (mounted) {
-        setState(() {
-          _statusText = "Error clearing points: ${e.message}";
-        });
+        setState(() => _statusText = "Error clearing state: ${e.message}");
       }
     }
   }
 
-  Future<void> _toggleFreezeArView() async {
-    if (_isArFrozen) {
-      print(
-          "AR is already frozen. To unfreeze, clear points or implement unfreeze logic.");
-      setState(() {
-        _statusText = "View is frozen. Clear points to restart.";
-      });
-    } else {
-      if (_measurements.where((m) => m.initiallyValid).isEmpty) {
-        if (mounted) {
-          setState(() {
-            _statusText = "Place at least one measurement before finishing.";
-          });
-        }
-        return;
-      }
-      try {
-        await _channel.invokeMethod('freezeArView');
-        if (mounted) {
-          setState(() {
-            _isArFrozen = true;
-            _statusText =
-                'Measurement finished. View is frozen.\n(Next step: Implement 3D model placement)';
-          });
-        }
-        print("AR view freeze command sent.");
-      } on PlatformException catch (e) {
-        print("Failed to invoke freezeArView: '${e.message}'.");
-        if (mounted) {
-          setState(() {
-            _statusText = "Error freezing view: ${e.message}";
-          });
-        }
-      }
+  Future<void> _captureAndProceed() async {
+    if (_isActionFinished) return;
+    setState(() => _isActionFinished = true);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) =>
+          const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final RenderRepaintBoundary boundary = _arViewKey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      final ui.Image image = await boundary.toImage(
+          pixelRatio: MediaQuery.of(context).devicePixelRatio);
+      final ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) throw Exception("Could not get byte data");
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+
+      Navigator.of(context).pop();
+
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PlacementScreen(
+            backgroundImage: pngBytes,
+            modelUrl: widget.modelUrlToPlace!,
+            measurements: _measurements,
+            modelDimension: widget.modelDimension,
+          ),
+        ),
+      );
+
+      setState(() => _isActionFinished = false);
+    } catch (e) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to capture screen: $e')),
+      );
+      setState(() => _isActionFinished = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_devicePixelRatio == 1.0 &&
-        MediaQuery.of(context).devicePixelRatio != 1.0 &&
-        mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted &&
-            MediaQuery.of(context).devicePixelRatio != _devicePixelRatio) {
-          setState(() {
-            _devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-            print("Device Pixel Ratio updated in build: $_devicePixelRatio");
-          });
-        }
-      });
-    }
-
     Widget arViewWidget;
     if (Platform.isAndroid) {
-      arViewWidget = AndroidView(
+      arViewWidget = const AndroidView(
         viewType: 'ar_view',
         layoutDirection: TextDirection.ltr,
-        creationParams: const <String, dynamic>{},
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: (int id) {
-          print("AR PlatformView with ID $id created.");
-        },
+        creationParamsCodec: StandardMessageCodec(),
       );
     } else {
       arViewWidget = const Center(
-        child: Text('AR Measurement is only available on Android.'),
-      );
+          child: Text('AR features are only available on Android.'));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AR Measurement'),
+        title: Text(
+            widget.modelUrlToPlace == null || widget.modelUrlToPlace!.isEmpty
+                ? 'AR Measurement'
+                : 'Measure & Place'),
       ),
       body: Stack(
         children: [
-          Positioned.fill(child: arViewWidget),
+          Positioned.fill(
+            child: RepaintBoundary(
+              key: _arViewKey,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: arViewWidget),
+                  ..._measurements
+                      .where((data) => data.isVisibleOnScreen)
+                      .map((data) {
+                    return Positioned(
+                      left: data.midPointScreenX,
+                      top: data.midPointScreenY,
+                      child: FractionalTranslation(
+                        translation: const Offset(-0.5, -0.5),
+                        child: IgnorePointer(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: Colors.deepPurple.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Colors.black.withOpacity(0.5),
+                                      blurRadius: 4,
+                                      offset: const Offset(1.5, 1.5))
+                                ]),
+                            child: Text(
+                              '${data.label}: ${data.distance.toStringAsFixed(2)} m',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
           Positioned(
-            bottom: 80, // ปรับตำแหน่ง status text ให้สูงขึ้นเล็กน้อย
+            bottom: 100,
             left: 20,
             right: 20,
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _statusText,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
+                  color: Colors.black.withOpacity(0.75),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Text(_statusText,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  textAlign: TextAlign.center),
             ),
           ),
-          ..._measurements.where((data) => data.isVisibleOnScreen).map((data) {
-            return Positioned(
-              left: data.midPointScreenX,
-              top: data.midPointScreenY,
-              child: FractionalTranslation(
-                translation: const Offset(-0.5, -0.5),
-                child: IgnorePointer(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                        color: Colors.deepPurple.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 3,
-                              offset: const Offset(1, 1))
-                        ]),
-                    child: Text(
-                      '${data.label}: ${data.distance.toStringAsFixed(2)} m',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-
-          // ปุ่มควบคุม: Clear และ Finish/Unfreeze
           Positioned(
             bottom: 20,
             right: 20,
             child: FloatingActionButton(
-              onPressed: _clearPoints,
-              tooltip: 'Clear Points & Unfreeze',
+              onPressed: _clearArState,
+              tooltip: 'Clear Measurements',
               backgroundColor: Colors.redAccent,
-              heroTag: 'clearButton', // Add unique heroTag
+              heroTag: 'clearButton',
               child: const Icon(Icons.delete_forever),
             ),
           ),
-          if (!_isArFrozen) // แสดงปุ่ม Finish เฉพาะเมื่อยังไม่ Freeze
+          if (!_isActionFinished)
             Positioned(
               bottom: 20,
               left: 20,
-              child: FloatingActionButton(
-                onPressed: _toggleFreezeArView,
-                tooltip: 'Finish Measurement',
-                backgroundColor: Colors.green,
-                heroTag: 'finishButton', // Add unique heroTag
-                child: const Icon(Icons.check_circle_outline),
+              child: FloatingActionButton.extended(
+                onPressed: (widget.modelUrlToPlace != null &&
+                        widget.modelUrlToPlace!.isNotEmpty)
+                    ? _captureAndProceed
+                    : null,
+                tooltip: 'Finish Measurements & Place Model',
+                backgroundColor: (widget.modelUrlToPlace != null &&
+                        widget.modelUrlToPlace!.isNotEmpty)
+                    ? Colors.green
+                    : Colors.grey,
+                heroTag: 'finishButton',
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text("FINISH"),
               ),
             ),
         ],
