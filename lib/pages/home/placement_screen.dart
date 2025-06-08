@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
-// TODO: แก้ 'your_project_name' ให้เป็นชื่อโปรเจกต์ของคุณเพื่อให้ path ถูกต้อง
 import 'ar_measure_screen.dart';
 
 class PlacementScreen extends StatefulWidget {
