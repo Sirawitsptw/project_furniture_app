@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Text(appBarTitles[currentIndex]),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: Center(
         child: currentIndex == 0

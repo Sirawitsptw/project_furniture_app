@@ -113,19 +113,40 @@ class LoginState extends State<Login> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
             children: [
+              // Simple Beautiful Welcome Text
               Center(
-                child: Text(
-                  'Hello',
-                  style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32,
+                child: ShaderMask(
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: [
+                      Color(0xff0D6EFD),
+                      Color(0xff8B5CF6),
+                      Color(0xffEC4899),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ).createShader(bounds),
+                  child: Text(
+                    'ยินดีต้อนรับเข้าสู่แอปพลิเคชันซื้อเฟอร์นิเจอร์',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.kanit(
+                      textStyle: const TextStyle(
+                        color: Colors.white, // จำเป็นสำหรับ ShaderMask
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        height: 1.3,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(3, 3),
+                            blurRadius: 6,
+                            color: Colors.black26,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+              const SizedBox(height: 40),
               _phoneNumberField(),
               if (showOtpField) ...[
                 const SizedBox(height: 20),
@@ -137,6 +158,7 @@ class LoginState extends State<Login> {
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xff0D6EFD),
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

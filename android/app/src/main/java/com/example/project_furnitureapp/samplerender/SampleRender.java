@@ -1,41 +1,41 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2020 Google LLC // ข้อความลิขสิทธิ์ของ Google
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); // แจ้งว่าใช้ Apache License 2.0
+ * you may not use this file except in compliance with the License. // ห้ามใช้ไฟล์นี้ถ้าไม่ยอมรับ license
+ * You may obtain a copy of the License at // สามารถดู license ได้ที่
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0 // URL ของ license
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software // ถ้าไม่ได้ระบุไว้เป็นลายลักษณ์อักษร
+ * distributed under the License is distributed on an "AS IS" BASIS, // ซอฟต์แวร์นี้แจกแบบ "AS IS"
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. // ไม่มีการรับประกันใดๆ
+ * See the License for the specific language governing permissions and // ดูรายละเอียดใน license
+ * limitations under the License. // ข้อจำกัดตาม license
  */
-package com.example.project_furnitureapp.samplerender; // ตรวจสอบ package name ให้ตรงกับโปรเจกต์ของคุณ
+package com.example.project_furnitureapp.samplerender; // ประกาศ package ของไฟล์นี้
 
-import android.content.res.AssetManager;
-import android.opengl.GLES30;
-import android.opengl.GLSurfaceView;
-import android.util.Log; // เพิ่ม Log import ถ้าต้องการใช้
+import android.content.res.AssetManager; // import AssetManager สำหรับโหลด resource
+import android.opengl.GLES30; // import GLES30 สำหรับใช้งาน OpenGL ES 3.0
+import android.opengl.GLSurfaceView; // import GLSurfaceView สำหรับแสดงผล OpenGL
+import android.util.Log; // import Log สำหรับเขียน log
 
-import javax.microedition.khronos.egl.EGLConfig; // อาจจะไม่ต้องใช้แล้ว
-import javax.microedition.khronos.opengles.GL10; // อาจจะไม่ต้องใช้แล้ว
+import javax.microedition.khronos.egl.EGLConfig; // import EGLConfig (อาจจะไม่ได้ใช้แล้ว)
+import javax.microedition.khronos.opengles.GL10; // import GL10 (อาจจะไม่ได้ใช้แล้ว)
 
 /**
  * A SampleRender context. Provides basic rendering methods and helpers.
  * (คำอธิบายอาจจะต้องปรับปรุงตามการใช้งานจริง)
  */
-public class SampleRender {
-    private static final String TAG = SampleRender.class.getSimpleName();
+public class SampleRender { // ประกาศคลาส SampleRender
+    private static final String TAG = SampleRender.class.getSimpleName(); // ตัวแปร TAG สำหรับ log
 
-    private final AssetManager assetManager;
+    private final AssetManager assetManager; // ตัวแปรเก็บ AssetManager
 
     // viewportWidth/Height อาจจะยังจำเป็น ถ้า SampleRender ใช้ในการคำนวณบางอย่าง
     // แต่การตั้งค่า viewport หลักๆ จะทำใน ArMeasureView.onSurfaceChanged
-    private int viewportWidth = 1;
-    private int viewportHeight = 1;
+    private int viewportWidth = 1; // ตัวแปรเก็บความกว้าง viewport เริ่มต้น 1
+    private int viewportHeight = 1; // ตัวแปรเก็บความสูง viewport เริ่มต้น 1
 
     /**
      * Constructs a SampleRender object.
@@ -47,10 +47,10 @@ public class SampleRender {
      * @param renderer Renderer implementation (อาจจะไม่จำเป็นต้องใช้โดยตรงใน constructor นี้แล้ว)
      * @param assetManager AssetManager for loading Android resources (สำคัญ)
      */
-    public SampleRender(GLSurfaceView glSurfaceView, Renderer renderer, AssetManager assetManager) {
+    public SampleRender(GLSurfaceView glSurfaceView, Renderer renderer, AssetManager assetManager) { // constructor รับ GLSurfaceView, Renderer, AssetManager
         // **** เก็บเฉพาะ AssetManager ****
-        this.assetManager = assetManager;
-        Log.d(TAG, "SampleRender created. AssetManager stored.");
+        this.assetManager = assetManager; // กำหนดค่า AssetManager
+        Log.d(TAG, "SampleRender created. AssetManager stored."); // log ว่าสร้าง SampleRender แล้ว
 
         // **** ลบ/คอมเมนต์ ส่วนที่ตั้งค่า GLSurfaceView ซ้ำซ้อนออกทั้งหมด ****
         /*
@@ -96,70 +96,70 @@ public class SampleRender {
 
         // อาจจะยังต้อง init viewport size? หรือรอ onSurfaceChanged ของ ArMeasureView?
         // For safety, initialize to 1x1 until onSurfaceChanged is called in the main renderer.
-        this.viewportWidth = 1;
-        this.viewportHeight = 1;
+        this.viewportWidth = 1; // กำหนดค่าเริ่มต้น viewportWidth
+        this.viewportHeight = 1; // กำหนดค่าเริ่มต้น viewportHeight
     }
 
-    /** Draw a {@link Mesh} with the specified {@link Shader}. Uses default framebuffer. */
-    public void draw(Mesh mesh, Shader shader) {
-        draw(mesh, shader, /*framebuffer=*/ null);
+    /** Draw a {@link Mesh} with the specified {@link Shader}. Uses default framebuffer. */ // คำอธิบายเมธอด: วาด Mesh ด้วย Shader ที่กำหนด (ใช้ framebuffer หลัก)
+    public void draw(Mesh mesh, Shader shader) { // เมธอดวาด mesh
+        draw(mesh, shader, /*framebuffer=*/ null); // เรียกเมธอด draw อีกตัวโดยไม่ระบุ framebuffer
     }
 
-    /** Draw a {@link Mesh} with the specified {@link Shader} to the given {@link Framebuffer}. */
-    public void draw(Mesh mesh, Shader shader, Framebuffer framebuffer) {
+    /** Draw a {@link Mesh} with the specified {@link Shader} to the given {@link Framebuffer}. */ // คำอธิบายเมธอด: วาด Mesh ด้วย Shader ไปยัง framebuffer ที่กำหนด
+    public void draw(Mesh mesh, Shader shader, Framebuffer framebuffer) { // เมธอดวาด mesh ไปยัง framebuffer
         // This method likely still works as it handles GL state for drawing
         useFramebuffer(framebuffer); // Bind target framebuffer
         shader.lowLevelUse();      // Use the shader program
         mesh.lowLevelDraw();       // Draw the mesh
     }
 
-    /** Clear the given framebuffer. */
-    public void clear(Framebuffer framebuffer, float r, float g, float b, float a) {
+    /** Clear the given framebuffer. */ // คำอธิบายเมธอด: ล้าง framebuffer ที่กำหนด
+    public void clear(Framebuffer framebuffer, float r, float g, float b, float a) { // เมธอดล้าง framebuffer
         // This method likely still works
-        useFramebuffer(framebuffer);
-        GLES30.glClearColor(r, g, b, a);
-        GLError.maybeThrowGLException("Failed to set clear color", "glClearColor");
+        useFramebuffer(framebuffer); // bind framebuffer
+        GLES30.glClearColor(r, g, b, a); // ตั้งค่าสีที่ใช้ล้าง
+        GLError.maybeThrowGLException("Failed to set clear color", "glClearColor"); // เช็ค error
         GLES30.glDepthMask(true); // Ensure depth writing is enabled for clear
-        GLError.maybeThrowGLException("Failed to set depth write mask", "glDepthMask");
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
-        GLError.maybeThrowGLException("Failed to clear framebuffer", "glClear");
+        GLError.maybeThrowGLException("Failed to set depth write mask", "glDepthMask"); // เช็ค error
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT); // ล้างทั้งสีและ depth
+        GLError.maybeThrowGLException("Failed to clear framebuffer", "glClear"); // เช็ค error
     }
 
     /**
      * Interface for rendering callbacks (Specific to this SampleRender class).
      * Note: This might be redundant if the main class implements GLSurfaceView.Renderer directly.
      */
-    public static interface Renderer {
-        public void onSurfaceCreated(SampleRender render);
-        public void onSurfaceChanged(SampleRender render, int width, int height);
-        public void onDrawFrame(SampleRender render);
+    public static interface Renderer { // interface สำหรับ callback การ render
+        public void onSurfaceCreated(SampleRender render); // callback เมื่อ surface ถูกสร้าง
+        public void onSurfaceChanged(SampleRender render, int width, int height); // callback เมื่อ surface เปลี่ยนขนาด
+        public void onDrawFrame(SampleRender render); // callback เมื่อวาด frame
     }
 
-    /** Provides access to the AssetManager passed during construction. */
+    /** Provides access to the AssetManager passed during construction. */ // คำอธิบายเมธอด: คืนค่า AssetManager
     /* package-private */ // Keep package-private or make public if needed elsewhere
     public AssetManager getAssets() { // Made public for easier access from renderers
-        return assetManager;
+        return assetManager; // คืนค่า AssetManager
     }
 
-    /** Binds the specified framebuffer and sets the viewport. */
-    private void useFramebuffer(Framebuffer framebuffer) {
-        int framebufferId;
-        int viewportWidth;
-        int viewportHeight;
-        if (framebuffer == null) {
+    /** Binds the specified framebuffer and sets the viewport. */ // คำอธิบายเมธอด: bind framebuffer และตั้งค่า viewport
+    private void useFramebuffer(Framebuffer framebuffer) { // เมธอด bind framebuffer
+        int framebufferId; // ตัวแปรเก็บ id ของ framebuffer
+        int viewportWidth; // ตัวแปรเก็บความกว้าง viewport
+        int viewportHeight; // ตัวแปรเก็บความสูง viewport
+        if (framebuffer == null) { // ถ้าไม่ได้ระบุ framebuffer
             framebufferId = 0; // Default framebuffer
             // Use the stored viewport dimensions (should be updated by main renderer's onSurfaceChanged)
-            viewportWidth = this.viewportWidth;
-            viewportHeight = this.viewportHeight;
-        } else {
-            framebufferId = framebuffer.getFramebufferId();
-            viewportWidth = framebuffer.getWidth();
-            viewportHeight = framebuffer.getHeight();
+            viewportWidth = this.viewportWidth; // ใช้ค่าที่เก็บไว้
+            viewportHeight = this.viewportHeight; // ใช้ค่าที่เก็บไว้
+        } else { // ถ้ามี framebuffer
+            framebufferId = framebuffer.getFramebufferId(); // ดึง id ของ framebuffer
+            viewportWidth = framebuffer.getWidth(); // ดึงความกว้าง
+            viewportHeight = framebuffer.getHeight(); // ดึงความสูง
         }
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebufferId);
-        GLError.maybeThrowGLException("Failed to bind framebuffer", "glBindFramebuffer");
-        GLES30.glViewport(0, 0, viewportWidth, viewportHeight);
-        GLError.maybeThrowGLException("Failed to set viewport dimensions", "glViewport");
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebufferId); // bind framebuffer
+        GLError.maybeThrowGLException("Failed to bind framebuffer", "glBindFramebuffer"); // เช็ค error
+        GLES30.glViewport(0, 0, viewportWidth, viewportHeight); // ตั้งค่า viewport
+        GLError.maybeThrowGLException("Failed to set viewport dimensions", "glViewport"); // เช็ค error
 
         // Store the dimensions if using default framebuffer? No, main renderer handles that.
         // if (framebuffer == null) {
@@ -170,10 +170,10 @@ public class SampleRender {
 
      // **** เพิ่มเมธอดนี้เพื่อให้ ArMeasureView อัปเดตขนาด Viewport ได้ ****
      // (จำเป็นเพราะเราลบ internal renderer ที่เคยอัปเดต viewportWidth/Height ออกไป)
-     /** Updates the stored viewport dimensions. Should be called from the main renderer's onSurfaceChanged. */
-     public void setViewport(int width, int height) {
-          this.viewportWidth = width;
-          this.viewportHeight = height;
-          Log.d(TAG, "Viewport updated in SampleRender: " + width + "x" + height);
+     /** Updates the stored viewport dimensions. Should be called from the main renderer's onSurfaceChanged. */ // คำอธิบายเมธอด: อัปเดตขนาด viewport ที่เก็บไว้
+     public void setViewport(int width, int height) { // เมธอดอัปเดตขนาด viewport
+          this.viewportWidth = width; // กำหนดความกว้างใหม่
+          this.viewportHeight = height; // กำหนดความสูงใหม่
+          Log.d(TAG, "Viewport updated in SampleRender: " + width + "x" + height); // log ขนาดใหม่
      }
 }
