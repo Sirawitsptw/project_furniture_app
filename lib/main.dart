@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'pages/home/home.dart';
 import 'pages/login/login.dart';
+import 'package:project_furnitureapp/pages/home/RiderHome.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,10 +44,18 @@ class _SplashScreenState extends State<SplashScreen> {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
-      );
+      final phone = user.phoneNumber;
+      if (phone == '+66931724456') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const RiderHome()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
     } else {
       Navigator.pushReplacement(
         context,

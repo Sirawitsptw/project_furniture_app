@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:project_furnitureapp/pages/home/home.dart';
 import 'package:project_furnitureapp/pages/signup/signup.dart';
+import 'package:project_furnitureapp/pages/home/RiderHome.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -87,12 +88,22 @@ class LoginState extends State<Login> {
     }
   }
 
-  void _showSuccess() {
-    Navigator.push(
+void _showSuccess() {
+  final phone = FirebaseAuth.instance.currentUser?.phoneNumber;
+
+  if (phone == '+66931724456') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => RiderHome()),
+    );
+  } else {
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomePage()),
     );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
