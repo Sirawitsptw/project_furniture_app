@@ -1,0 +1,2 @@
+C:/workpalm/project_furniture_app/android/app/.cxx/Debug/2e293t14/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/workpalm/project_furniture_app/android/app/.cxx/Debug/2e293t14/armeabi-v7a/CMakeFiles/rebuild_cache.dir
