@@ -14,6 +14,12 @@ class RiderOrderViewState extends State<RiderOrderView> {
   late String selectedStatus;
   final List<String> deliveryOptions = ['รอดำเนินการ', 'กำลังจัดส่ง', 'จัดส่งสำเร็จ'];
 
+  /// map ชื่อสถานะ -> ฟิลด์เวลาบนเอกสารหลัก (ไม่มี orderedAt แล้ว)
+  final Map<String, String> statusTimeField = const {
+    'กำลังจัดส่ง': 'shippingAt',
+    'จัดส่งสำเร็จ': 'deliveredAt',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -21,16 +27,43 @@ class RiderOrderViewState extends State<RiderOrderView> {
   }
 
   Future<void> updateDeliveryStatus(String newStatus) async {
-    String docId = widget.orderData['docId'];
+    final String docId = widget.orderData['docId']; // ถ้าใช้ id แทน docId เปลี่ยนตรงนี้
+    final db = FirebaseFirestore.instance;
+    final orderRef = db.collection('order').doc(docId);
 
-    await FirebaseFirestore.instance
-        .collection('order')
-        .doc(docId)
-        .update({'deliveryStatus': newStatus});
+    final String? timeField = statusTimeField[newStatus];
+    final serverTime = FieldValue.serverTimestamp();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('อัปเดตสถานะเรียบร้อยแล้ว')),
-    );
+    try {
+      // ใช้ Transaction เพื่อ "ตั้งเวลาเฉพาะครั้งแรก" ของแต่ละสถานะ (ไม่เขียนทับ)
+      await db.runTransaction((tx) async {
+        final snap = await tx.get(orderRef);
+        final data = (snap.data() as Map<String, dynamic>?) ?? {};
+
+        final update = <String, dynamic>{
+          'deliveryStatus': newStatus,
+          'statusChangedAt': serverTime, // อัปเดตทุกครั้งที่มีการเปลี่ยนสถานะ
+        };
+
+        if (timeField != null && data[timeField] == null) {
+          update[timeField] = serverTime;
+        }
+
+        tx.update(orderRef, update);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('อัปเดตสถานะเรียบร้อยแล้ว')),
+        );
+      }
+    } on FirebaseException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('อัปเดตไม่สำเร็จ: ${e.message}')),
+        );
+      }
+    }
   }
 
   @override

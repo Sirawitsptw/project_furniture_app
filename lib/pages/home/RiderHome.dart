@@ -69,7 +69,7 @@ class RiderHomeState extends State<RiderHome> {
                 subtitle: Text('สินค้า: ${orderData['nameOrderProduct']}\n'
                     'ราคา: ${orderData['priceOrder']}\n'
                     'เบอร์โทรศัพท์: ${orderData['phone']}\n'
-                    'วิธ๊ชำระเงิน: ${orderData['paymentMethod']}\n'
+                    'วิธีชำระเงิน: ${orderData['paymentMethod']}\n'
                     'สถานะการชำระเงิน: ${orderData['paymentStatus']}\n'
                     'สถานะการจัดส่ง: ${orderData['deliveryStatus']}'),
                 onTap: () {
