@@ -14,22 +14,50 @@ class CartPage extends StatefulWidget {
 class CartPageState extends State<CartPage> {
   String? selectedProductId;
   Map<String, dynamic>? selectedProductData;
-  Map<String, int> productQuantities = {};
+
+  // จำนวนที่ผู้ใช้เลือกต่อแถว cart (key = cartDocId)
+  final Map<String, int> productQuantities = {};
+  // สต็อกคงเหลือตามสินค้าจริง (key = cartDocId)
+  final Map<String, int> productStocks = {};
 
   void updateQuantity(String productId, int change) {
-    setState(() {
-      productQuantities[productId] =
-          (productQuantities[productId] ?? 1) + change;
-      if (productQuantities[productId]! < 1) {
-        productQuantities[productId] = 1;
+    final maxStock = productStocks[productId]; // อาจเป็น null ระหว่างโหลด
+    final current = productQuantities[productId] ?? 1;
+
+    int next = current + change;
+    if (next < 1) next = 1;
+    if (maxStock != null && next > maxStock) {
+      next = maxStock;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('จำนวนสูงสุดที่สั่งได้คือ $maxStock ชิ้น')),
+        );
       }
+    }
+    setState(() {
+      productQuantities[productId] = next;
     });
+  }
+
+  int _toInt(dynamic v, {int def = 0}) {
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? def;
+    return def;
+  }
+
+  double _toDouble(dynamic v) {
+    if (v is double) return v;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v) ?? 0.0;
+    return 0.0;
   }
 
   @override
   Widget build(BuildContext context) {
-    User? user = FirebaseAuth.instance.currentUser;
-    String userPhone = user?.phoneNumber ?? '';
+    final User? user = FirebaseAuth.instance.currentUser;
+    final String userPhone = user?.phoneNumber ?? '';
+
     return Scaffold(
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -42,10 +70,10 @@ class CartPageState extends State<CartPage> {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No items in the cart.'));
+            return const Center(child: Text('No items in the cart.'));
           }
 
-          var cartItems = snapshot.data!.docs;
+          final cartItems = snapshot.data!.docs;
 
           return Column(
             children: [
@@ -53,97 +81,171 @@ class CartPageState extends State<CartPage> {
                 child: ListView.builder(
                   itemCount: cartItems.length,
                   itemBuilder: (context, index) {
-                    var item = cartItems[index];
-                    var itemData = item.data() as Map<String, dynamic>;
-                    String productId = item.id;
-                    productQuantities.putIfAbsent(productId, () => 1);
+                    final item = cartItems[index];
+                    final itemData = item.data() as Map<String, dynamic>;
+                    final cartDocId = item.id;
+                    productQuantities.putIfAbsent(cartDocId, () => 1);
 
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      child: ListTile(
-                        leading: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Radio<String>(
-                              value: productId,
-                              groupValue: selectedProductId,
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedProductId = value;
-                                  selectedProductData = itemData;
-                                });
-                              },
+                    // สตรีมสต็อกจากคอลเลกชัน product อิงชื่อสินค้า
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('product')
+                          .where('name', isEqualTo: itemData['nameCart'])
+                          .limit(1)
+                          .snapshots(),
+                      builder: (context, prodSnap) {
+                        int stock = 0;
+                        if (prodSnap.hasData && prodSnap.data!.docs.isNotEmpty) {
+                          final prodData = prodSnap.data!.docs.first.data() as Map<String, dynamic>;
+                          stock = _toInt(prodData['amount'], def: 0);
+                        }
+                        // อัปเดตแผนที่สต็อก (ไม่ต้อง setState เพราะรีบิลด์จาก Stream อยู่แล้ว)
+                        productStocks[cartDocId] = stock;
+
+                        // ถ้าเลือกไว้เกินสต็อก ให้บีบลงมาเท่าสต็อก
+                        final currentQty = productQuantities[cartDocId] ?? 1;
+                        if (stock > 0 && currentQty > stock) {
+                          productQuantities[cartDocId] = stock;
+                        }
+
+                        final qty = productQuantities[cartDocId] ?? 1;
+                        final unitPrice = _toInt(itemData['priceCart']);
+                        final rowTotal = unitPrice * qty;
+
+                        final bool outOfStock = stock <= 0;
+                        final bool canInc = !outOfStock && (qty < stock);
+                        final bool canDec = qty > 1;
+
+                        return Opacity(
+                          opacity: outOfStock ? 0.6 : 1,
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                            child: ListTile(
+                              leading: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Radio<String>(
+                                    value: cartDocId,
+                                    groupValue: selectedProductId,
+                                    onChanged: outOfStock
+                                        ? null // สินค้าหมด: กันไม่ให้เลือกสั่ง
+                                        : (value) {
+                                            setState(() {
+                                              selectedProductId = value;
+                                              selectedProductData = itemData;
+                                            });
+                                          },
+                                  ),
+                                  Image.network(
+                                    itemData['imgCart'],
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                                  ),
+                                ],
+                              ),
+                              title: Text(itemData['nameCart']),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(outOfStock
+                                      ? 'สถานะ: สินค้าหมด'
+                                      : 'คงเหลือ: $stock ชิ้น'),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove),
+                                        onPressed: canDec
+                                            ? () => updateQuantity(cartDocId, -1)
+                                            : null,
+                                      ),
+                                      Text('$qty'),
+                                      IconButton(
+                                        icon: const Icon(Icons.add),
+                                        onPressed: canInc
+                                            ? () => updateQuantity(cartDocId, 1)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                  Text('ราคา: $rowTotal บาท'),
+                                ],
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.remove_shopping_cart),
+                                onPressed: () {
+                                  FirebaseFirestore.instance
+                                      .collection('cart')
+                                      .doc(cartDocId)
+                                      .delete();
+                                },
+                              ),
+                              onTap: outOfStock
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        selectedProductId = cartDocId;
+                                        selectedProductData = itemData;
+                                      });
+                                    },
                             ),
-                            Image.network(itemData['imgCart'],
-                                width: 50, height: 50, fit: BoxFit.cover),
-                          ],
-                        ),
-                        title: Text(itemData['nameCart']),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.remove),
-                                  onPressed: () =>
-                                      updateQuantity(productId, -1),
-                                ),
-                                Text('${productQuantities[productId]}'),
-                                IconButton(
-                                  icon: Icon(Icons.add),
-                                  onPressed: () => updateQuantity(productId, 1),
-                                ),
-                              ],
-                            ),
-                            Text(
-                                'ราคา: ${(int.parse(itemData['priceCart'].toString()) * productQuantities[productId]!)} บาท'),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.remove_shopping_cart),
-                          onPressed: () {
-                            FirebaseFirestore.instance
-                                .collection('cart')
-                                .doc(productId)
-                                .delete();
-                          },
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
-                  onPressed: selectedProductData != null
+                  onPressed: (selectedProductData != null)
                       ? () {
-                          productModel productCart = productModel(
+                          final selId = selectedProductId!;
+                          final selQty = productQuantities[selId] ?? 1;
+                          final selStock = productStocks[selId] ?? 0;
+
+                          if (selStock <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('สินค้าหมด ไม่สามารถสั่งซื้อได้')),
+                            );
+                            return;
+                          }
+                          if (selQty > selStock) {
+                            setState(() {
+                              productQuantities[selId] = selStock;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('ปรับจำนวนเป็น $selStock ตามสต็อกที่เหลือ')),
+                            );
+                            return;
+                          }
+
+                          final productCart = productModel(
                             name: selectedProductData!['nameCart'],
-                            price: int.parse(selectedProductData!['priceCart']
-                                    .toString()) *
-                                productQuantities[selectedProductId]!,
+                            price: _toInt(selectedProductData!['priceCart']) * selQty,
                             imageUrl: selectedProductData!['imgCart'],
                             model: selectedProductData!['modelCart'],
                             desc: selectedProductData!['descCart'],
-                            amount: productQuantities[selectedProductId]!,
-                            width: selectedProductData!['widthCart'],
-                            height: selectedProductData!['heightCart'],
-                            depth: selectedProductData!['depthCart'],
-                            longest: selectedProductData!['longestCart'],
+                            amount: selQty,
+                            width: _toDouble(selectedProductData!['widthCart']),
+                            height: _toDouble(selectedProductData!['heightCart']),
+                            depth: _toDouble(selectedProductData!['depthCart']),
+                            longest: _toDouble(selectedProductData!['longestCart']),
                           );
 
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  OrderPage(product: productCart),
+                              builder: (context) => OrderPage(product: productCart),
                             ),
                           );
                         }
                       : null,
-                  child: Text('สั่งซื้อ'),
+                  child: const Text('สั่งซื้อ'),
                 ),
               ),
             ],

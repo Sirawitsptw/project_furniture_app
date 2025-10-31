@@ -91,7 +91,7 @@ class LoginState extends State<Login> {
 void _showSuccess() {
   final phone = FirebaseAuth.instance.currentUser?.phoneNumber;
 
-  if (phone == '+66931724456') {
+  if (phone == '+66111111111' || phone == '+66222222222' || phone == '+66333333333') {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => RiderHome()),

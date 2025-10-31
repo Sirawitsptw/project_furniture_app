@@ -45,7 +45,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (user != null) {
       final phone = user.phoneNumber;
-      if (phone == '+66931724456') {
+      const riderPhones = {
+        '+66111111111', // โต๊ะ
+        '+66222222222', // เก้าอี้
+        '+66333333333', // ตู้
+      };
+      if (phone != null && riderPhones.contains(phone)) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const RiderHome()),

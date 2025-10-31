@@ -74,7 +74,7 @@ class _ProductViewState extends State<ProductView> {
             width: 350,
             child: ModelViewer(
               src: model.model, // URL/path ของโมเดล 3D
-              ar: true,
+              ar: false,
               autoRotate: true,
               cameraControls: true,
             ),
@@ -101,18 +101,13 @@ class _ProductViewState extends State<ProductView> {
               ),
               onPressed: () {
                 if (Platform.isAndroid) {
-                  print(
-                      "Navigating to AR Screen with model URL: ${model.model} and dimension: ${model.longest}");
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => ArMeasureScreen(
-                              // ===============================================
-                              // **** จุดที่แก้ไข ****
                               modelUrlToPlace: model.model,
                               // เพิ่มการส่งขนาดของโมเดลไปด้วย
                               modelDimension: model.longest,
-                              // ===============================================
                             )),
                   );
                 } else {
@@ -137,12 +132,39 @@ class _ProductViewState extends State<ProductView> {
                 IconButton(
                     icon: Icon(Icons.shopping_basket, size: 40),
                     onPressed: addToCart),
+
+                // ===== แก้เฉพาะปุ่มสั่งซื้อ ตรงนี้เท่านั้น =====
                 ElevatedButton(
                   onPressed: () {
+                    // กันสั่งถ้าสต็อกหมด
+                    final stock = (model.amount is int)
+                        ? model.amount as int
+                        : int.tryParse(model.amount.toString()) ?? 0;
+                    if (stock <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('สินค้าหมด ไม่สามารถสั่งซื้อได้')),
+                      );
+                      return;
+                    }
+
+                    final orderModel = productModel(
+                      name: model.name,
+                      price: model.price,
+                      imageUrl: model.imageUrl,
+                      model: model.model,
+                      desc: model.desc,
+                      amount: 1, 
+                      width: model.width,
+                      height: model.height,
+                      depth: model.depth,
+                      longest: model.longest,
+                    );
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => OrderPage(product: model),
+                        builder: (context) => OrderPage(product: orderModel),
                       ),
                     );
                   },

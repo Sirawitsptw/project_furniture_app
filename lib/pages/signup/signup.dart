@@ -12,6 +12,8 @@ class Signup extends StatefulWidget {
 
 class SignupState extends State<Signup> {
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _firstnameController = TextEditingController();
+  final TextEditingController _lastnameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -62,6 +64,14 @@ class SignupState extends State<Signup> {
                 const SizedBox(
                   height: 20,
                 ),
+                firstname(),
+                const SizedBox(
+                  height: 20,
+                ),
+                lastname(),
+                const SizedBox(
+                  height: 20,
+                ),
                 _phoneNumber(),
                 if (_codeSent) ...{
                   const SizedBox(
@@ -90,7 +100,7 @@ class SignupState extends State<Signup> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Email Address',
+          'อีเมลล์',
           style: GoogleFonts.raleway(
               textStyle: const TextStyle(
                   color: Colors.black,
@@ -124,7 +134,7 @@ class SignupState extends State<Signup> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mobile Phone',
+          'หมายเลขโทรศัพท์มือถือ',
           style: GoogleFonts.raleway(
               textStyle: const TextStyle(
                   color: Colors.black,
@@ -157,7 +167,7 @@ class SignupState extends State<Signup> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Password',
+          'รหัสผ่าน',
           style: GoogleFonts.raleway(
               textStyle: const TextStyle(
                   color: Colors.black,
@@ -187,7 +197,7 @@ class SignupState extends State<Signup> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Confirm Password',
+          'ยืนยันรหัสผ่าน',
           style: GoogleFonts.raleway(
               textStyle: const TextStyle(
                   color: Colors.black,
@@ -211,12 +221,78 @@ class SignupState extends State<Signup> {
     );
   }
 
+    Widget firstname() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ชื่อจริง',
+          style: GoogleFonts.raleway(
+              textStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16)),
+        ),
+        const SizedBox(
+          height: 16,
+        ),
+        TextField(
+          controller: _firstnameController,
+          decoration: InputDecoration(
+              filled: true,
+              hintStyle: const TextStyle(
+                  color: Color(0xff6A6A6A),
+                  fontWeight: FontWeight.normal,
+                  fontSize: 14),
+              fillColor: const Color(0xffF7F7F9),
+              border: OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(14))),
+        )
+      ],
+    );
+  }
+
+    Widget lastname() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'นามสกุล',
+          style: GoogleFonts.raleway(
+              textStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.normal,
+                  fontSize: 16)),
+        ),
+        const SizedBox(
+          height: 16,
+        ),
+        TextField(
+          controller: _lastnameController,
+          decoration: InputDecoration(
+              filled: true,
+              hintStyle: const TextStyle(
+                  color: Color(0xff6A6A6A),
+                  fontWeight: FontWeight.normal,
+                  fontSize: 14),
+              fillColor: const Color(0xffF7F7F9),
+              border: OutlineInputBorder(
+                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(14))),
+        )
+      ],
+    );
+  }
+
   Widget _otpInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Enter OTP',
+          'ใส่ OTP',
           style: GoogleFonts.raleway(
             textStyle: const TextStyle(
               color: Colors.black,
@@ -283,10 +359,13 @@ class SignupState extends State<Signup> {
             verificationId: _verificationId!,
             smsCode: _otpController.text,
             context: context,
+            email: _emailController.text.trim(),
+            firstName: _firstnameController.text.trim(),
+            lastName: _lastnameController.text.trim(),
+            phone: formatPhoneNumber(_phoneController.text.trim()),
           );
         } else {
-          phoneNumber:
-          formatPhoneNumber(_phoneController.text.trim());
+          phoneNumber: formatPhoneNumber(_phoneController.text.trim());
           await AuthService().sendOTP(
             phoneNumber: formatPhoneNumber(_phoneController.text.trim()),
             context: context,

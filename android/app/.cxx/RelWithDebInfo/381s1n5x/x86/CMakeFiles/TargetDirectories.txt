@@ -1,0 +1,2 @@
+C:/workpalm/project_furniture_app/android/app/.cxx/RelWithDebInfo/381s1n5x/x86/CMakeFiles/edit_cache.dir
+C:/workpalm/project_furniture_app/android/app/.cxx/RelWithDebInfo/381s1n5x/x86/CMakeFiles/rebuild_cache.dir
