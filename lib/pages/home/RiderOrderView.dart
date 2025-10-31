@@ -11,26 +11,23 @@ class RiderOrderView extends StatefulWidget {
 }
 
 class RiderOrderViewState extends State<RiderOrderView> {
-  // --- Delivery status ---
+  // --- Delivery status (รวม "ลูกค้ารับสินค้าแล้ว" ให้เท่ากับ "จัดส่งสำเร็จ") ---
   late String selectedStatus;
   final List<String> deliveryOptions = const [
     'รอดำเนินการ',
     'กำลังจัดส่ง',
     'จัดส่งสำเร็จ',
-    'จัดส่งไม่สำเร็จ'
+    'จัดส่งไม่สำเร็จ',
   ];
 
-  // สำหรับกรณีรับเอง
-  final List<String> pickupOptions = const [
-    'ลูกค้ามารับสินค้าเอง',
-    'ลูกค้ารับสินค้าแล้ว',
-  ];
-
-  /// map ชื่อสถานะจัดส่ง/รับเอง -> ฟิลด์เวลาบนเอกสารหลัก
+  /// map ชื่อสถานะ -> ฟิลด์เวลาในเอกสารหลัก
+  /// เพิ่ม failedAt สำหรับ "จัดส่งไม่สำเร็จ"
+  /// (เผื่อย้อนหลัง ถ้ามีค่า "ลูกค้ารับสินค้าแล้ว" จะ map เป็น deliveredAt)
   final Map<String, String> statusTimeField = const {
     'กำลังจัดส่ง': 'shippingAt',
     'จัดส่งสำเร็จ': 'deliveredAt',
-    'ลูกค้ารับสินค้าแล้ว': 'pickedUpAt', // เพิ่มสำหรับรับเอง
+    'ลูกค้ารับสินค้าแล้ว': 'deliveredAt',
+    'จัดส่งไม่สำเร็จ': 'failedAt',
   };
 
   // --- Payment status ---
@@ -40,63 +37,52 @@ class RiderOrderViewState extends State<RiderOrderView> {
     'ชำระเงินแล้ว',
   ];
 
-  /// map ชื่อสถานะชำระเงิน -> ฟิลด์เวลาบนเอกสารหลัก
+  /// map สถานะชำระเงิน -> ฟิลด์เวลา
   final Map<String, String> paymentTimeField = const {
     'ชำระเงินแล้ว': 'paidAt',
   };
-
-  // บอกว่าออเดอร์นี้เลือก "รับสินค้าด้วยตนเอง" หรือไม่
-  late bool isPickup;
 
   @override
   void initState() {
     super.initState();
 
-    isPickup =
-        (widget.orderData['deliveryOption'] as String?) == 'รับสินค้าด้วยตนเอง';
-
-    // ตั้งค่าเริ่มต้นของสถานะจัดส่ง/รับ
+    // ตั้งค่าเริ่มต้นสถานะจัดส่ง; ถ้าเดิมเป็น "ลูกค้ารับสินค้าแล้ว" → ใช้ "จัดส่งสำเร็จ"
     final initialDeliveryStatus =
-        (widget.orderData['deliveryStatus'] as String?);
-
-    if (isPickup) {
-      // ถ้าเป็นออเดอร์รับเอง และสถานะเดิมไม่ใช่ 2 ค่านี้ ให้ตั้งต้นเป็น "ลูกค้ามารับสินค้าเอง"
-      if (initialDeliveryStatus == null ||
-          !pickupOptions.contains(initialDeliveryStatus)) {
-        selectedStatus = 'ลูกค้ามารับสินค้าเอง';
-      } else {
-        selectedStatus = initialDeliveryStatus;
-      }
-    } else {
-      // ส่งถึงบ้าน: คงลิสต์เดิม
-      selectedStatus = initialDeliveryStatus ?? 'กำลังจัดส่ง';
-    }
+        (widget.orderData['deliveryStatus'] as String?) ?? 'กำลังจัดส่ง';
+    selectedStatus = (initialDeliveryStatus == 'ลูกค้ารับสินค้าแล้ว')
+        ? 'จัดส่งสำเร็จ'
+        : initialDeliveryStatus;
 
     selectedPaymentStatus =
         (widget.orderData['paymentStatus'] as String?) ?? 'รอชำระเงินปลายทาง';
   }
 
   Future<void> updateDeliveryStatus(String newStatus) async {
-    final String docId = widget.orderData['docId']; // ถ้าใช้ id แทน docId เปลี่ยนตรงนี้
-    final db = FirebaseFirestore.instance;
-    final orderRef = db.collection('order').doc(docId);
+    final String docId = widget.orderData['docId'] as String; // ต้องมี docId ใน order
+    final orderRef =
+        FirebaseFirestore.instance.collection('order').doc(docId);
 
     final String? timeField = statusTimeField[newStatus];
     final serverTime = FieldValue.serverTimestamp();
 
     try {
-      await db.runTransaction((tx) async {
+      await FirebaseFirestore.instance.runTransaction((tx) async {
         final snap = await tx.get(orderRef);
         final data = (snap.data() as Map<String, dynamic>?) ?? {};
 
         final update = <String, dynamic>{
           'deliveryStatus': newStatus,
-          'statusChangedAt': serverTime, // อัปเดตทุกครั้งที่เปลี่ยนสถานะจัดส่ง/รับ
+          'statusChangedAt': serverTime, // log ทุกครั้งที่เปลี่ยนสถานะจัดส่ง
         };
 
-        // ตั้งเวลาครั้งแรกเท่านั้น (เช่น shippingAt/deliveredAt/pickedUpAt)
+        // เซ็ตเวลาครั้งแรกเท่านั้นสำหรับคีย์เวลาเฉพาะสถานะ
         if (timeField != null && data[timeField] == null) {
           update[timeField] = serverTime;
+        }
+
+        // กรณี newStatus = "จัดส่งสำเร็จ" ให้ลบค่าพลาดก่อนหน้า (ถ้ามี) เพื่อความสะอาดของข้อมูล
+        if (newStatus == 'จัดส่งสำเร็จ' && data['failedAt'] != null) {
+          update['failedAt'] = null;
         }
 
         tx.update(orderRef, update);
@@ -116,26 +102,25 @@ class RiderOrderViewState extends State<RiderOrderView> {
     }
   }
 
-  // อัปเดตสถานะชำระเงิน
   Future<void> updatePaymentStatus(String newStatus) async {
-    final String docId = widget.orderData['docId']; // ถ้าใช้ id แทน docId เปลี่ยนตรงนี้
-    final db = FirebaseFirestore.instance;
-    final orderRef = db.collection('order').doc(docId);
+    final String docId = widget.orderData['docId'] as String;
+    final orderRef =
+        FirebaseFirestore.instance.collection('order').doc(docId);
 
     final String? timeField = paymentTimeField[newStatus];
     final serverTime = FieldValue.serverTimestamp();
 
     try {
-      await db.runTransaction((tx) async {
+      await FirebaseFirestore.instance.runTransaction((tx) async {
         final snap = await tx.get(orderRef);
         final data = (snap.data() as Map<String, dynamic>?) ?? {};
 
         final update = <String, dynamic>{
           'paymentStatus': newStatus,
-          'paymentChangedAt': serverTime, // อัปเดตทุกครั้งที่เปลี่ยนสถานะชำระเงิน
+          'paymentChangedAt': serverTime, // log ทุกครั้งที่เปลี่ยนสถานะจ่ายเงิน
         };
 
-        // เซ็ต paidAt แค่ครั้งแรกเมื่อเปลี่ยนเป็น "ชำระเงินแล้ว"
+        // เซ็ต paidAt ครั้งแรกเท่านั้น
         if (timeField != null && data[timeField] == null) {
           update[timeField] = serverTime;
         }
@@ -159,12 +144,8 @@ class RiderOrderViewState extends State<RiderOrderView> {
 
   @override
   Widget build(BuildContext context) {
-    final paymentDropdownEnabled =
+    final bool paymentDropdownEnabled =
         selectedPaymentStatus == 'รอชำระเงินปลายทาง';
-
-    // เลือกชุดตัวเลือกสถานะจัดส่งตามโหมด
-    final List<String> currentDeliveryOptions =
-        isPickup ? pickupOptions : deliveryOptions;
 
     return Scaffold(
       appBar: AppBar(
@@ -210,69 +191,71 @@ class RiderOrderViewState extends State<RiderOrderView> {
                       buildText('🚚 วิธีจัดส่ง: ${widget.orderData['deliveryOption']}'),
                       buildText('💳 วิธีชำระเงิน: ${widget.orderData['paymentMethod']}'),
                       const Divider(height: 30),
+
+                      // Payment status
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
                             '💰 สถานะการชำระเงิน:',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: paymentDropdownEnabled
-                                ? _dropdownContainer(
-                                    child: DropdownButtonHideUnderline(
+                            child: _dropdownContainer(
+                              child: paymentDropdownEnabled
+                                  ? DropdownButtonHideUnderline(
                                       child: DropdownButton<String>(
                                         value: selectedPaymentStatus,
                                         isExpanded: true,
-                                        icon: const Icon(Icons.arrow_drop_down),
-                                        style: const TextStyle(fontSize: 16, color: Colors.black),
-                                        items: paymentOptions.map((String value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(value),
-                                          );
-                                        }).toList(),
-                                        onChanged: (String? newValue) {
-                                          if (newValue != null &&
-                                              newValue != selectedPaymentStatus) {
-                                            setState(() {
-                                              selectedPaymentStatus = newValue;
-                                            });
-                                            updatePaymentStatus(newValue).then((_) {
-                                              if (mounted) setState(() {});
-                                            });
+                                        icon:
+                                            const Icon(Icons.arrow_drop_down),
+                                        items: paymentOptions
+                                            .map((e) => DropdownMenuItem(
+                                                  value: e,
+                                                  child: Text(e),
+                                                ))
+                                            .toList(),
+                                        onChanged: (v) async {
+                                          if (v == null ||
+                                              v == selectedPaymentStatus) {
+                                            return;
                                           }
+                                          setState(
+                                              () => selectedPaymentStatus = v);
+                                          await updatePaymentStatus(v);
+                                          if (mounted) setState(() {});
                                         },
                                       ),
-                                    ),
-                                  )
-                                : _dropdownContainer(
-                                    // แสดงแบบอ่านอย่างเดียว เมื่อไม่ใช่ "รอชำระเงินปลายทาง"
-                                    child: Padding(
+                                    )
+                                  : Padding(
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 14, horizontal: 4),
                                       child: Text(
                                         selectedPaymentStatus,
-                                        style: const TextStyle(
-                                            fontSize: 16, color: Colors.black87),
+                                        style: const TextStyle(fontSize: 16),
                                       ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 16),
 
-                      // --- Delivery status row (เปลี่ยนตามโหมด) ---
+                      // Delivery status
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            isPickup ? '🛒 สถานะการรับสินค้า:' : '🚚 สถานะการจัดส่ง:',
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500),
+                          const Text(
+                            '🚚 สถานะการจัดส่ง:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -282,23 +265,18 @@ class RiderOrderViewState extends State<RiderOrderView> {
                                   value: selectedStatus,
                                   isExpanded: true,
                                   icon: const Icon(Icons.arrow_drop_down),
-                                  style: const TextStyle(
-                                      fontSize: 16, color: Colors.black),
-                                  items: currentDeliveryOptions
-                                      .map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null &&
-                                        newValue != selectedStatus) {
-                                      setState(() {
-                                        selectedStatus = newValue;
-                                      });
-                                      updateDeliveryStatus(newValue);
+                                  items: deliveryOptions
+                                      .map((e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ))
+                                      .toList(),
+                                  onChanged: (v) async {
+                                    if (v == null || v == selectedStatus) {
+                                      return;
                                     }
+                                    setState(() => selectedStatus = v);
+                                    await updateDeliveryStatus(v);
                                   },
                                 ),
                               ),
@@ -331,10 +309,7 @@ class RiderOrderViewState extends State<RiderOrderView> {
   Widget buildText(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 18),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 18)),
     );
   }
 }

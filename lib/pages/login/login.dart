@@ -191,7 +191,7 @@ void _showSuccess() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Phone Number',
+          'เบอร์โทรศัพท์',
           style: GoogleFonts.raleway(
             textStyle: const TextStyle(
               color: Colors.black,

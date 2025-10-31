@@ -19,6 +19,7 @@ class OrderListState extends State<OrderList> {
       appBar: AppBar(
         title: Text('รายการคำสั่งซื้อ'),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: order.where('userPhone', isEqualTo: userPhone).snapshots(),
@@ -35,7 +36,7 @@ class OrderListState extends State<OrderList> {
             children: snapshot.data!.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               return OrderCard(
-                docId: doc.id,          // ส่ง id ไปใช้ลบ/คืนสต็อก
+                docId: doc.id, // ส่ง id ไปใช้ลบ/คืนสต็อก
                 data: data,
               );
             }).toList(),
@@ -104,9 +105,7 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deliveryStatus = (data['deliveryStatus'] ?? 'รอดำเนินการ').toString();
-    // ไม่ให้ยกเลิกถ้าส่งสำเร็จ/รับแล้ว (ปรับตามที่ต้องการได้)
-    final bool cancellable = deliveryStatus != 'จัดส่งสำเร็จ' &&
-        deliveryStatus != 'ลูกค้ารับสินค้าแล้ว';
+    final bool hideCancel = deliveryStatus == 'จัดส่งสำเร็จ' || deliveryStatus == 'ลูกค้ารับสินค้าแล้ว';
 
     return Card(
       color: Colors.grey[200],
@@ -122,7 +121,10 @@ class OrderCard extends StatelessWidget {
                 border: Border.all(color: Colors.black),
               ),
               child: data['imageUrl'] != null
-                  ? Image.network(data['imageUrl'], fit: BoxFit.cover)
+                  ? Image.network(
+                      data['imageUrl'],
+                      fit: BoxFit.cover,
+                    )
                   : const Center(child: Text('No Image')),
             ),
             const SizedBox(width: 10),
@@ -132,48 +134,48 @@ class OrderCard extends StatelessWidget {
                 children: [
                   Text(
                     data['nameOrderProduct'] ?? 'ชื่อสินค้า',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text('จำนวน: ${data['quantityOrder'] ?? 1}'),
                   Text('ราคารวม: ${data['priceOrder']} บาท'),
-                  Text('สถานะการชำระเงิน: ${data['paymentStatus'] ?? 'รอชำระ'}'),
+                  Text(
+                      'สถานะการชำระเงิน: ${data['paymentStatus'] ?? 'รอชำระ'}'),
                   Text('สถานะการจัดส่ง: ${deliveryStatus}'),
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      label: const Text('ยกเลิกคำสั่งซื้อ',
-                          style: TextStyle(color: Colors.red)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
+                  Visibility(
+                    visible: !hideCancel,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        label: const Text('ยกเลิกคำสั่งซื้อ',
+                            style: TextStyle(color: Colors.red)),
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red)),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('ยืนยันการยกเลิก?'),
+                              content: const Text('ต้องการยกเลิกใช่หรือไม่?'),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('ไม่')),
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('ใช่, ยกเลิก')),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await _cancelOrder(context);
+                          }
+                        },
                       ),
-                      onPressed: !cancellable
-                          ? null
-                          : () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('ยืนยันการยกเลิก?'),
-                                  content: const Text(
-                                      'เมื่อยกเลิกแล้ว รายการนี้จะถูกลบ และสต็อกสินค้าจะถูกคืน'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, false),
-                                      child: const Text('ไม่'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text('ใช่, ยกเลิก'),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              if (confirm == true) {
-                                await _cancelOrder(context);
-                              }
-                            },
                     ),
                   ),
                 ],

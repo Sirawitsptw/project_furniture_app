@@ -49,16 +49,13 @@ class SignupState extends State<Signup> {
               children: [
                 Center(
                   child: Text(
-                    'Register Account',
+                    'สมัครสมาชิก',
                     style: GoogleFonts.raleway(
                         textStyle: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
                             fontSize: 32)),
                   ),
-                ),
-                const SizedBox(
-                  height: 80,
                 ),
                 _emailAddress(),
                 const SizedBox(
@@ -100,7 +97,7 @@ class SignupState extends State<Signup> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'อีเมลล์',
+          'อีเมล',
           style: GoogleFonts.raleway(
               textStyle: const TextStyle(
                   color: Colors.black,

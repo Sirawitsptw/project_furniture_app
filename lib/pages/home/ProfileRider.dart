@@ -42,7 +42,7 @@ class ProfileRider extends StatelessWidget {
         );
       },
       child: const Text(
-        "Sign Out",
+        "ออกจากระบบ",
         style: TextStyle(color: Colors.white),
       ),
     );
